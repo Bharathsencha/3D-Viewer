@@ -1,0 +1,9 @@
+appId: com.online3dviewer.desktop
+productName: 3DM Viewer
+asar: false
+win:
+  target: portable
+files:
+  - "build/package/website/**/*"
+  - "main.cjs"
+  - "package.json"

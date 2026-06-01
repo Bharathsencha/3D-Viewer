@@ -4,7 +4,7 @@
 	"description": "Online 3D Viewer",
 	"license": "MIT",
 	"type": "module",
-	"main": "./build/engine/o3dv.module.js",
+	"main": "main.cjs",
 	"repository": "github:kovacsv/Online3DViewer",
 	"keywords": [
 		"3d",
@@ -37,6 +37,8 @@
 		"website/assets/envmaps/*"
 	],
 	"scripts": {
+		"electron": "electron .",
+		"dist": "electron-builder --win --x64",
 		"start": "npm run build_website_dev && http-server",
 		"test": "mocha test",
 		"lint": "eslint source",
@@ -56,6 +58,8 @@
 		"update_engine_exports": "run-python3 tools/update_engine_exports.py"
 	},
 	"devDependencies": {
+		"electron": "^33.0.0",
+		"electron-builder": "^25.1.8",
 		"@types/node": "^22.15.0",
 		"esbuild": "^0.25.4",
 		"eslint": "^8.57.0",

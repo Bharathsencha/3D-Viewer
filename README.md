@@ -22,3 +22,13 @@ Online 3D Viewer (https://3dviewer.net) is a free and open source web solution t
 ## External Libraries
 
 Online 3D Viewer uses these wonderful libraries: [three.js](https://github.com/mrdoob/three.js), [pickr](https://github.com/Simonwep/pickr), [fflate](https://github.com/101arrowz/fflate), [draco](https://github.com/google/draco), [rhino3dm](https://github.com/mcneel/rhino3dm), [web-ifc](https://github.com/tomvandig/web-ifc), [occt-import-js](https://github.com/kovacsv/occt-import-js).
+
+## Desktop App (Electron)
+
+You can run and build this viewer as a standalone desktop application using Electron:
+
+1. Create the production website package: `npm run create_package`
+2. Test the Electron app locally: `npm run electron`
+3. Build the Windows executable (requires wine64 on Linux): `npm run dist`
+
+The final executable will be located in the `dist/` directory.
