@@ -52,6 +52,21 @@ app.whenReady().then(() => {
   const ghibli2Dest = path.join(musicDir, 'ghibli2.mp3');
   if (fs.existsSync(ghibli2Source) && !fs.existsSync(ghibli2Dest)) fs.copyFileSync(ghibli2Source, ghibli2Dest);
 
+  const saSource = path.join(__dirname, 'assets', 'default_music', 'gta_sa.mp3');
+  const saDest = path.join(musicDir, 'gta_sa.mp3');
+  if (fs.existsSync(saSource) && !fs.existsSync(saDest)) fs.copyFileSync(saSource, saDest);
+
+  const gta4Source = path.join(__dirname, 'assets', 'default_music', 'gta4.mp3');
+  const gta4Dest = path.join(musicDir, 'gta4.mp3');
+  if (fs.existsSync(gta4Source) && !fs.existsSync(gta4Dest)) fs.copyFileSync(gta4Source, gta4Dest);
+
+  const gta5Source = path.join(__dirname, 'assets', 'default_music', 'gta5.mp3');
+  const gta5Dest = path.join(musicDir, 'gta5.mp3');
+  if (fs.existsSync(gta5Source) && !fs.existsSync(gta5Dest)) fs.copyFileSync(gta5Source, gta5Dest);
+
+  const retroSource = path.join(__dirname, 'assets', 'default_music', 'retro.mp3');
+  const retroDest = path.join(musicDir, 'retro.mp3');
+  if (fs.existsSync(retroSource) && !fs.existsSync(retroDest)) fs.copyFileSync(retroSource, retroDest);
   ipcMain.handle('music:list', async () => {
     try {
       const mm = await import('music-metadata');

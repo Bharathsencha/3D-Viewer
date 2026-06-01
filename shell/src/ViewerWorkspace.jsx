@@ -4,7 +4,7 @@ import Sidebar from './Sidebar';
 import MusicPlayer from './MusicPlayer';
 import ThemeDropdown from './ThemeDropdown';
 
-export default function ViewerWorkspace({ library, activeFile, setActiveFile, onBack, isDarkMode, setIsDarkMode, themeStyle, setThemeStyle }) {
+export default function ViewerWorkspace({ library, activeFile, setActiveFile, onBack, isDarkMode, setIsDarkMode, themeStyle, setThemeStyle, gtaTheme, setGtaTheme }) {
   const iframeRef = useRef(null);
 
   useEffect(() => {
@@ -151,10 +151,12 @@ export default function ViewerWorkspace({ library, activeFile, setActiveFile, on
         }
         if (win && win.OV && win.OV.app) {
           // Sync theme
-          win.OV.app.SwitchTheme(isDarkMode ? 2 : 1, true);
+          const isDarkTheme = isDarkMode || themeStyle === 'gta';
+          win.OV.app.SwitchTheme(isDarkTheme ? 2 : 1, true);
         }
         if (doc) {
-          if (isDarkMode) doc.body.classList.add('dark-theme');
+          const isDarkTheme = isDarkMode || themeStyle === 'gta';
+          if (isDarkTheme) doc.body.classList.add('dark-theme');
           else doc.body.classList.remove('dark-theme');
         }
         
@@ -233,21 +235,22 @@ export default function ViewerWorkspace({ library, activeFile, setActiveFile, on
     }
 
 
-    // Sync theme whenever isDarkMode changes
+    // Sync theme whenever isDarkMode or themeStyle changes
     if (iframeRef.current) {
       try {
+        const isDarkTheme = isDarkMode || themeStyle === 'gta';
         const win = iframeRef.current.contentWindow;
         if (win && win.OV && win.OV.app) {
-          win.OV.app.SwitchTheme(isDarkMode ? 2 : 1, true);
+          win.OV.app.SwitchTheme(isDarkTheme ? 2 : 1, true);
         }
         const doc = iframeRef.current.contentDocument;
         if (doc) {
-          if (isDarkMode) doc.body.classList.add('dark-theme');
+          if (isDarkTheme) doc.body.classList.add('dark-theme');
           else doc.body.classList.remove('dark-theme');
         }
       } catch (err) {}
     }
-  }, [iframeRef, isDarkMode]);
+  }, [iframeRef, isDarkMode, themeStyle]);
 
   // Use the file path as the hash URL for the viewer
   const iframeSrc = activeFile 
@@ -278,40 +281,77 @@ export default function ViewerWorkspace({ library, activeFile, setActiveFile, on
               Credit: <a href="https://www.youtube.com/watch?v=ZyhrYis509A" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-color)', fontWeight: 600 }}>Aqua - Barbie Girl</a>
             </div>
           )}
-          {themeStyle === 'vicecity' && (
+          {themeStyle === 'gta' && (
             <div style={{ fontSize: '12px', color: 'var(--text-main)', background: 'var(--bg-color)', padding: '4px 12px', borderRadius: '12px', border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-sm)' }}>
-              Credit: <a href="https://www.youtube.com/watch?v=W552E5g0Rcw" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-color)', fontWeight: 600 }}>GTA Vice City Theme</a>
+              Credit: {gtaTheme === 'vice_city' && <a href="https://www.youtube.com/watch?v=F2_pg8xd1To" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-color)', fontWeight: 600 }}>GTA Vice City Theme</a>}
+              {gtaTheme === 'san_andreas' && <a href="https://www.youtube.com/watch?v=W4VTq0sa9yg" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-color)', fontWeight: 600 }}>GTA San Andreas Theme</a>}
+              {gtaTheme === 'gta4' && <a href="https://www.youtube.com/watch?v=pWO718iy5mY" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-color)', fontWeight: 600 }}>GTA IV Theme</a>}
+              {gtaTheme === 'gta5' && <a href="https://www.youtube.com/watch?v=KzKvPrIPVbE" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-color)', fontWeight: 600 }}>GTA V Theme</a>}
             </div>
           )}
           {themeStyle === 'ghibli' && (
             <div style={{ fontSize: '12px', color: 'var(--text-main)', background: 'var(--bg-color)', padding: '4px 12px', borderRadius: '12px', border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-sm)' }}>
-              Credit: <a href="https://studioghibli.com.au" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-color)', fontWeight: 600 }}>Studio Ghibli Theme</a>
+              Credit: {!isDarkMode ? (
+                <a href="https://www.youtube.com/watch?v=MZgBjQFMPvk" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-color)', fontWeight: 600 }}>Path of the Wind</a>
+              ) : (
+                <a href="https://www.youtube.com/watch?v=5e65bwX5uOM" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-color)', fontWeight: 600 }}>Meguru Kisetsu</a>
+              )}
+            </div>
+          )}
+          {themeStyle === 'retro' && (
+            <div style={{ fontSize: '12px', color: 'var(--text-main)', background: 'var(--bg-color)', padding: '4px 12px', borderRadius: '12px', border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-sm)' }}>
+              Credit: <a href="https://www.youtube.com/watch?v=RP0_8J7uxhs" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-color)', fontWeight: 600 }}>Laura Branigan - Self Control</a>
             </div>
           )}
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'var(--bg-color)', padding: '4px', borderRadius: '12px', border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-sm)' }}>
             <ThemeDropdown themeStyle={themeStyle} setThemeStyle={setThemeStyle} />
-            <button
-              onClick={() => setIsDarkMode(!isDarkMode)}
-              style={{
-                background: 'transparent',
-                border: 'none',
-                cursor: 'pointer',
-                color: 'var(--text-main)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                padding: '4px'
-              }}
-              title="Toggle Theme"
-            >
-              {themeStyle === 'ghibli' ? (
-                isDarkMode ? <Brush size={20} /> : <Cat size={20} />
-              ) : (
-                isDarkMode ? <Sun size={20} /> : <Moon size={20} />
-              )}
-            </button>
+            
+            {themeStyle === 'gta' ? (
+              <div style={{ display: 'flex', gap: '4px', marginLeft: '4px', borderLeft: '1px solid var(--border-color)', paddingLeft: '8px' }}>
+                {['vice_city', 'san_andreas', 'gta4', 'gta5'].map(theme => (
+                  <button
+                    key={theme}
+                    onClick={() => setGtaTheme(theme)}
+                    style={{
+                      padding: '4px 8px',
+                      fontSize: '12px',
+                      fontWeight: 700,
+                      borderRadius: '8px',
+                      border: 'none',
+                      cursor: 'pointer',
+                      background: gtaTheme === theme ? 'var(--accent-color)' : 'transparent',
+                      color: gtaTheme === theme ? '#fff' : 'var(--text-muted)',
+                      transition: 'all 0.2s'
+                    }}
+                  >
+                    {theme === 'vice_city' ? 'VC' : theme === 'san_andreas' ? 'SA' : theme === 'gta4' ? 'IV' : 'V'}
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <button
+                onClick={() => setIsDarkMode(!isDarkMode)}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  cursor: 'pointer',
+                  color: 'var(--text-main)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  padding: '4px'
+                }}
+                title="Toggle Theme"
+              >
+                {themeStyle === 'ghibli' ? (
+                  isDarkMode ? <Brush size={20} /> : <Cat size={20} />
+                ) : (
+                  isDarkMode ? <Sun size={20} /> : <Moon size={20} />
+                )}
+              </button>
+            )}
           </div>
-          <MusicPlayer themeStyle={themeStyle} isDarkMode={isDarkMode} />
+          <MusicPlayer themeStyle={themeStyle} isDarkMode={isDarkMode} gtaTheme={gtaTheme} />
         </div>
       </div>
 

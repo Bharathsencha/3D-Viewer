@@ -7,8 +7,9 @@ export default function App() {
   const [library, setLibrary] = useState(null);
   const [currentFolderId, setCurrentFolderId] = useState(null); // null means root
   const [activeFile, setActiveFile] = useState(null); // The file to view in the 3D Viewer
-  const [isDarkMode, setIsDarkMode] = useState(false); // Global theme state
-  const [themeStyle, setThemeStyle] = useState('modern'); // 'modern' | 'cartoon'
+  const [isDarkMode, setIsDarkMode] = useState(() => localStorage.getItem('isDarkMode') === 'true'); // Global theme state
+  const [themeStyle, setThemeStyle] = useState(() => localStorage.getItem('themeStyle') || 'modern');
+  const [gtaTheme, setGtaTheme] = useState(() => localStorage.getItem('gtaTheme') || 'vice_city');
 
   // Load library on start
   useEffect(() => {
@@ -51,8 +52,16 @@ export default function App() {
     }
     if (themeStyle) {
       document.documentElement.classList.add(`theme-${themeStyle}`);
+      if (themeStyle === 'gta') {
+        document.documentElement.classList.add(`gta-${gtaTheme}`);
+      }
     }
-  }, [isDarkMode, themeStyle]);
+    
+    // Persist to local storage
+    localStorage.setItem('isDarkMode', isDarkMode);
+    localStorage.setItem('themeStyle', themeStyle);
+    localStorage.setItem('gtaTheme', gtaTheme);
+  }, [isDarkMode, themeStyle, gtaTheme]);
 
   const navigateToDashboard = () => {
     setActiveFile(null);
@@ -62,19 +71,19 @@ export default function App() {
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
       {activeFile ? (
         <ViewerWorkspace 
-          library={library || []}
-          setLibrary={setLibrary}
-          activeFile={activeFile}
-          setActiveFile={setActiveFile}
+          library={library}
+          activeFile={activeFile} 
           onBack={navigateToDashboard}
           isDarkMode={isDarkMode}
           setIsDarkMode={setIsDarkMode}
           themeStyle={themeStyle}
           setThemeStyle={setThemeStyle}
+          gtaTheme={gtaTheme}
+          setGtaTheme={setGtaTheme}
         />
       ) : (
         <Dashboard 
-          library={library || []}
+          library={library} 
           setLibrary={setLibrary}
           currentFolderId={currentFolderId}
           setCurrentFolderId={setCurrentFolderId}
@@ -83,6 +92,8 @@ export default function App() {
           setIsDarkMode={setIsDarkMode}
           themeStyle={themeStyle}
           setThemeStyle={setThemeStyle}
+          gtaTheme={gtaTheme}
+          setGtaTheme={setGtaTheme}
         />
       )}
     </div>

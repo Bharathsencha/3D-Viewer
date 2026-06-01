@@ -3,7 +3,7 @@ import { Folder, File, ChevronRight, Home, Plus, Upload, Sun, Moon, Cat, Brush }
 import MusicPlayer from './MusicPlayer';
 import ThemeDropdown from './ThemeDropdown';
 
-export default function Dashboard({ library, setLibrary, currentFolderId, setCurrentFolderId, setActiveFile, isDarkMode, setIsDarkMode, themeStyle, setThemeStyle }) {
+export default function Dashboard({ library, setLibrary, currentFolderId, setCurrentFolderId, setActiveFile, isDarkMode, setIsDarkMode, themeStyle, setThemeStyle, gtaTheme, setGtaTheme }) {
   const [showPrompt, setShowPrompt] = useState(false);
   const [newFolderName, setNewFolderName] = useState('');
   
@@ -131,40 +131,77 @@ export default function Dashboard({ library, setLibrary, currentFolderId, setCur
               Credit: <a href="https://www.youtube.com/watch?v=ZyhrYis509A" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-color)', fontWeight: 600 }}>Aqua - Barbie Girl</a>
             </div>
           )}
-          {themeStyle === 'vicecity' && (
+          {themeStyle === 'gta' && (
             <div style={{ fontSize: '12px', color: 'var(--text-main)', background: 'var(--surface-color)', padding: '4px 12px', borderRadius: '12px', border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-sm)' }}>
-              Credit: <a href="https://www.youtube.com/watch?v=W552E5g0Rcw" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-color)', fontWeight: 600 }}>GTA Vice City Theme</a>
+              Credit: {gtaTheme === 'vice_city' && <a href="https://www.youtube.com/watch?v=F2_pg8xd1To" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-color)', fontWeight: 600 }}>GTA Vice City Theme</a>}
+              {gtaTheme === 'san_andreas' && <a href="https://www.youtube.com/watch?v=W4VTq0sa9yg" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-color)', fontWeight: 600 }}>GTA San Andreas Theme</a>}
+              {gtaTheme === 'gta4' && <a href="https://www.youtube.com/watch?v=pWO718iy5mY" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-color)', fontWeight: 600 }}>GTA IV Theme</a>}
+              {gtaTheme === 'gta5' && <a href="https://www.youtube.com/watch?v=KzKvPrIPVbE" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-color)', fontWeight: 600 }}>GTA V Theme</a>}
             </div>
           )}
           {themeStyle === 'ghibli' && (
             <div style={{ fontSize: '12px', color: 'var(--text-main)', background: 'var(--surface-color)', padding: '4px 12px', borderRadius: '12px', border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-sm)' }}>
-              Credit: <a href="https://studioghibli.com.au" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-color)', fontWeight: 600 }}>Studio Ghibli Theme</a>
+              Credit: {!isDarkMode ? (
+                <a href="https://www.youtube.com/watch?v=MZgBjQFMPvk" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-color)', fontWeight: 600 }}>Path of the Wind</a>
+              ) : (
+                <a href="https://www.youtube.com/watch?v=5e65bwX5uOM" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-color)', fontWeight: 600 }}>Meguru Kisetsu</a>
+              )}
+            </div>
+          )}
+          {themeStyle === 'retro' && (
+            <div style={{ fontSize: '12px', color: 'var(--text-main)', background: 'var(--surface-color)', padding: '4px 12px', borderRadius: '12px', border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-sm)' }}>
+              Credit: <a href="https://www.youtube.com/watch?v=RP0_8J7uxhs" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-color)', fontWeight: 600 }}>Laura Branigan - Self Control</a>
             </div>
           )}
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'var(--surface-color)', padding: '4px', borderRadius: '12px', border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-sm)' }}>
             <ThemeDropdown themeStyle={themeStyle} setThemeStyle={setThemeStyle} />
-            <button
-              onClick={() => setIsDarkMode(!isDarkMode)}
-              style={{
-                background: 'transparent',
-                border: 'none',
-                cursor: 'pointer',
-                color: 'var(--text-main)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                padding: '4px'
-              }}
-              title="Toggle Theme"
-            >
-              {themeStyle === 'ghibli' ? (
-                isDarkMode ? <Brush size={20} /> : <Cat size={20} />
-              ) : (
-                isDarkMode ? <Sun size={20} /> : <Moon size={20} />
-              )}
-            </button>
+            
+            {themeStyle === 'gta' ? (
+              <div style={{ display: 'flex', gap: '4px', marginLeft: '4px', borderLeft: '1px solid var(--border-color)', paddingLeft: '8px' }}>
+                {['vice_city', 'san_andreas', 'gta4', 'gta5'].map(theme => (
+                  <button
+                    key={theme}
+                    onClick={() => setGtaTheme(theme)}
+                    style={{
+                      padding: '4px 8px',
+                      fontSize: '12px',
+                      fontWeight: 700,
+                      borderRadius: '8px',
+                      border: 'none',
+                      cursor: 'pointer',
+                      background: gtaTheme === theme ? 'var(--accent-color)' : 'transparent',
+                      color: gtaTheme === theme ? '#fff' : 'var(--text-muted)',
+                      transition: 'all 0.2s'
+                    }}
+                  >
+                    {theme === 'vice_city' ? 'VC' : theme === 'san_andreas' ? 'SA' : theme === 'gta4' ? 'IV' : 'V'}
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <button
+                onClick={() => setIsDarkMode(!isDarkMode)}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  cursor: 'pointer',
+                  color: 'var(--text-main)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  padding: '4px'
+                }}
+                title="Toggle Theme"
+              >
+                {themeStyle === 'ghibli' ? (
+                  isDarkMode ? <Brush size={20} /> : <Cat size={20} />
+                ) : (
+                  isDarkMode ? <Sun size={20} /> : <Moon size={20} />
+                )}
+              </button>
+            )}
           </div>
-          <MusicPlayer themeStyle={themeStyle} isDarkMode={isDarkMode} />
+          <MusicPlayer themeStyle={themeStyle} isDarkMode={isDarkMode} gtaTheme={gtaTheme} />
           
           <button 
             onClick={handleCreateFolder}
@@ -198,7 +235,7 @@ export default function Dashboard({ library, setLibrary, currentFolderId, setCur
               style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', color: idx === breadcrumbs.length - 1 ? 'var(--accent-color)' : 'inherit' }}
               onClick={() => setCurrentFolderId(bc.id)}
             >
-              {idx === 0 ? <Home size={22} strokeWidth={2.5} color={idx === breadcrumbs.length - 1 ? 'var(--accent-color)' : 'var(--text-main)'} /> : bc.name}
+              {idx === 0 ? <Home size={22} strokeWidth={2.5} /> : bc.name}
             </div>
             {idx < breadcrumbs.length - 1 && <ChevronRight size={18} strokeWidth={2.5} />}
           </React.Fragment>

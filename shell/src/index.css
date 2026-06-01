@@ -167,15 +167,11 @@ button {
   font-family: 'Fredoka', cursive, sans-serif;
 }
 
-/* VICE CITY THEME OVERRIDES */
-:root.theme-vicecity {
-  --bg-color: #0d0121;
-  --bg-pattern: url('/vice_city.jpg');
-  --bg-position: center;
-  --bg-size: cover;
+/* GTA THEME OVERRIDES */
+:root.theme-gta {
   --surface-color: rgba(13, 1, 33, 0.85);
-  --border-color: #ff00a0; /* neon pink */
-  --text-main: #00ffff; /* neon cyan */
+  --border-color: #ff00a0;
+  --text-main: #00ffff;
   --text-muted: #ff66c4;
   --accent-color: #ff00a0;
   --accent-hover: #00ffff;
@@ -184,7 +180,59 @@ button {
   --shadow-lg: 8px 8px 0px rgba(0, 255, 255, 0.5);
 }
 
-:root.theme-vicecity body {
+:root.theme-gta.gta-vice_city {
+  --bg-color: #0d0121;
+  --bg-pattern: url('/vice_city.jpg');
+  --bg-position: center;
+  --bg-size: cover;
+}
+
+:root.theme-gta.gta-san_andreas {
+  --bg-color: #3b2a1a;
+  --bg-pattern: url('/GTA_San_Andres.jpg');
+  --bg-position: center;
+  --bg-size: cover;
+  --border-color: #fca311;
+  --text-main: #ffffff;
+  --text-muted: #e5e5e5;
+  --accent-color: #fca311;
+  --accent-hover: #ffb703;
+  --shadow-sm: 4px 4px 0px rgba(252, 163, 17, 0.5);
+  --shadow-md: 6px 6px 0px rgba(252, 163, 17, 0.5);
+  --shadow-lg: 8px 8px 0px rgba(252, 163, 17, 0.5);
+}
+
+:root.theme-gta.gta-gta4 {
+  --bg-color: #1a1a1a;
+  --bg-pattern: url('/GTA_4.png');
+  --bg-position: center;
+  --bg-size: cover;
+  --border-color: #8c7355;
+  --text-main: #f0f0f0;
+  --text-muted: #c0c0c0;
+  --accent-color: #8c7355;
+  --accent-hover: #a68c6e;
+  --shadow-sm: 4px 4px 0px rgba(140, 115, 85, 0.5);
+  --shadow-md: 6px 6px 0px rgba(140, 115, 85, 0.5);
+  --shadow-lg: 8px 8px 0px rgba(140, 115, 85, 0.5);
+}
+
+:root.theme-gta.gta-gta5 {
+  --bg-color: #002b1f;
+  --bg-pattern: url('/GTA_5.jpg');
+  --bg-position: center;
+  --bg-size: cover;
+  --border-color: #55a630;
+  --text-main: #ffffff;
+  --text-muted: #d8f3dc;
+  --accent-color: #55a630;
+  --accent-hover: #80b918;
+  --shadow-sm: 4px 4px 0px rgba(85, 166, 48, 0.5);
+  --shadow-md: 6px 6px 0px rgba(85, 166, 48, 0.5);
+  --shadow-lg: 8px 8px 0px rgba(85, 166, 48, 0.5);
+}
+
+:root.theme-gta body {
   font-family: 'Courier New', Courier, monospace;
   background-color: var(--bg-color);
   background-image: var(--bg-pattern);
@@ -193,21 +241,21 @@ button {
   background-attachment: fixed;
 }
 
-:root.theme-vicecity * {
+:root.theme-gta * {
   border-width: 2px !important;
   border-color: var(--border-color) !important;
 }
 
-:root.theme-vicecity button {
+:root.theme-gta button {
   font-family: 'Courier New', Courier, monospace;
   text-transform: uppercase;
   font-weight: 700;
-  box-shadow: 0 0 10px rgba(255, 0, 160, 0.5) !important;
+  box-shadow: 0 0 10px var(--border-color) !important;
 }
 
-:root.theme-vicecity input {
+:root.theme-gta input {
   font-family: 'Courier New', Courier, monospace;
-  box-shadow: 0 0 10px rgba(255, 0, 160, 0.5) !important;
+  box-shadow: 0 0 10px var(--border-color) !important;
 }
 
 /* GHIBLI THEME OVERRIDES */
@@ -272,4 +320,96 @@ button {
 :root.dark.theme-ghibli span, 
 :root.dark.theme-ghibli div {
   text-shadow: 0 0 8px rgba(255, 255, 255, 0.6), 0 0 12px rgba(255, 255, 255, 0.6);
+}
+
+/* Retro Theme */
+:root.theme-retro {
+  --bg-color: #0b021d;
+  --surface-color: rgba(30, 8, 48, 0.85);
+  --border-color: #ff00ff;
+  --text-main: #00ffff;
+  --text-muted: #ff00a0;
+  --accent-color: #ff00a0;
+  --accent-hover: #ff4dc4;
+  --accent-text: #ffffff;
+  --shadow-sm: 0 0 10px rgba(255, 0, 255, 0.4);
+  --shadow-md: 0 0 15px rgba(255, 0, 255, 0.6);
+  --shadow-lg: 0 0 25px rgba(255, 0, 255, 0.8);
+}
+
+:root.theme-retro body {
+  background-image: url('/retro.jpg');
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
+}
+
+:root.theme-retro div[style*="var(--surface-color)"],
+:root.theme-retro div[style*="var(--bg-color)"] {
+  backdrop-filter: blur(8px);
+}
+
+:root.theme-retro h1, 
+:root.theme-retro h2 {
+  text-shadow: 2px 2px 4px rgba(255, 0, 255, 0.5);
+}
+
+:root.theme-retro input[type="range"] {
+  accent-color: #00ffff !important;
+}
+
+/* Windows 95 Theme */
+:root.theme-95 {
+  --bg-color: #008080;
+  --surface-color: #c0c0c0;
+  --border-color: #000000;
+  --text-main: #000000;
+  --text-muted: #404040;
+  --accent-color: #000080;
+  --accent-hover: #0000a0;
+  --accent-text: #ffffff;
+  --shadow-sm: none;
+  --shadow-md: none;
+  --shadow-lg: 10px 10px 0px rgba(0,0,0,0.2);
+}
+
+:root.theme-95 body {
+  background-image: none;
+  background-color: #008080;
+}
+
+:root.theme-95 * {
+  font-family: 'Courier New', Courier, monospace !important;
+  border-radius: 0 !important;
+  cursor: default !important;
+}
+
+/* Win95 classic buttons and panels */
+:root.theme-95 div[style*="var(--surface-color)"], 
+:root.theme-95 button {
+  box-shadow: inset 1px 1px 0px #ffffff, inset -1px -1px 0px #000000, inset 2px 2px 0px #dfdfdf, inset -2px -2px 0px #808080 !important;
+  border: 1px solid #000000 !important;
+  background: #c0c0c0 !important;
+  color: #000000 !important;
+}
+
+:root.theme-95 button:active {
+  box-shadow: inset 1px 1px 0px #000000, inset -1px -1px 0px #ffffff, inset 2px 2px 0px #808080, inset -2px -2px 0px #dfdfdf !important;
+  padding-top: 2px !important;
+  padding-left: 2px !important;
+}
+
+:root.theme-95 button[style*="var(--accent-color)"] {
+  background: #c0c0c0 !important;
+}
+
+:root.theme-95 h1, :root.theme-95 h2 {
+  color: #000080 !important;
+  text-shadow: none !important;
+}
+
+:root.theme-95 input, :root.theme-95 select {
+  box-shadow: inset 1px 1px 0px #000000, inset -1px -1px 0px #ffffff, inset 2px 2px 0px #808080, inset -2px -2px 0px #dfdfdf !important;
+  border: 1px solid #000000 !important;
+  background: #ffffff !important;
 }

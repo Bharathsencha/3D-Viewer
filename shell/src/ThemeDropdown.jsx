@@ -19,8 +19,10 @@ export default function ThemeDropdown({ themeStyle, setThemeStyle }) {
     { value: 'modern', label: 'Modern' },
     { value: 'cartoon', label: 'Cartoonish' },
     { value: 'barbie', label: 'Barbie' },
-    { value: 'vicecity', label: 'Vice City' },
-    { value: 'ghibli', label: 'Ghibli' }
+    { value: 'gta', label: 'GTA' },
+    { value: 'ghibli', label: 'Ghibli' },
+    { value: 'retro', label: 'Retro' },
+    { value: '95', label: 'Windows 95' }
   ];
 
   const selectedOption = options.find(o => o.value === themeStyle) || options[0];
