@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ChevronRight, ChevronDown, Folder as FolderIcon, File as FileIcon, Search } from 'lucide-react';
 
-export default function Sidebar({ library, activeFile, setActiveFile }) {
+export default function Sidebar({ library, activeFile, setActiveFile, themeStyle }) {
   const [expanded, setExpanded] = useState({});
 
   // Auto-expand folders when a file is selected
@@ -76,7 +76,30 @@ export default function Sidebar({ library, activeFile, setActiveFile }) {
               ) : null}
             </span>
             <span style={{ marginRight: '8px', display: 'flex', alignItems: 'center' }}>
-              {isFolder ? <FolderIcon size={16} fill="currentColor" color="currentColor" /> : <FileIcon size={16} />}
+              {isFolder ? (
+                themeStyle === 'cartoon' ? (
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="var(--border-color)" strokeWidth="2">
+                    <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+                    <circle cx="9" cy="13" r="1.5" fill="#000"></circle>
+                    <circle cx="15" cy="13" r="1.5" fill="#000"></circle>
+                    <path d="M10 16c1.5 1.5 2.5 1.5 4 0" stroke="#000" strokeWidth="1.5" strokeLinecap="round"></path>
+                  </svg>
+                ) : (
+                  <FolderIcon size={16} fill="currentColor" color="currentColor" />
+                )
+              ) : (
+                themeStyle === 'cartoon' ? (
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="#ffffff" stroke="var(--border-color)" strokeWidth="2">
+                    <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path>
+                    <polyline points="13 2 13 9 20 9"></polyline>
+                    <circle cx="9" cy="14" r="1.5" fill="#000"></circle>
+                    <circle cx="15" cy="14" r="1.5" fill="#000"></circle>
+                    <path d="M10 17c1.5 1.5 2.5 1.5 4 0" stroke="#000" strokeWidth="1.5" strokeLinecap="round"></path>
+                  </svg>
+                ) : (
+                  <FileIcon size={16} />
+                )
+              )}
             </span>
             <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', textDecoration: node.missing ? 'line-through' : 'none' }}>
               {node.name}

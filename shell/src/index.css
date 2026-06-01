@@ -65,3 +65,62 @@ body {
 button {
   font-family: inherit;
 }
+
+/* CARTOON THEME OVERRIDES */
+:root.theme-cartoon {
+  --bg-color: #fce4ec;
+  --bg-pattern: 
+    radial-gradient(#f48fb1 3px, transparent 3px),
+    radial-gradient(rgba(0,0,0,0.2) 3px, transparent 3px);
+  --bg-position: 0 0, 2px 2px;
+  --bg-size: 30px 30px;
+  --surface-color: #ffffff;
+  --border-color: #000000;
+  --text-main: #000000;
+  --text-muted: #555555;
+  --accent-color: #ff4081;
+  --accent-hover: #e91e63;
+  --shadow-sm: 4px 4px 0px #000000;
+  --shadow-md: 6px 6px 0px #000000;
+  --shadow-lg: 8px 8px 0px #000000;
+}
+
+:root.dark.theme-cartoon {
+  --bg-color: #4a148c;
+  --bg-pattern: 
+    radial-gradient(#7b1fa2 3px, transparent 3px),
+    radial-gradient(rgba(0,0,0,0.5) 3px, transparent 3px);
+  --bg-position: 0 0, 2px 2px;
+  --bg-size: 30px 30px;
+  --surface-color: #311b92;
+  --border-color: #000000;
+  --text-main: #ffffff;
+  --text-muted: #e1bee7;
+  --accent-color: #ff4081;
+  --shadow-sm: 4px 4px 0px #000000;
+  --shadow-md: 6px 6px 0px #000000;
+}
+
+:root.theme-cartoon body {
+  font-family: 'Fredoka', cursive, sans-serif;
+  background-color: var(--bg-color);
+  background-image: var(--bg-pattern);
+  background-size: var(--bg-size);
+  background-position: var(--bg-position);
+}
+
+:root.theme-cartoon * {
+  border-width: 2px !important;
+}
+
+:root.theme-cartoon button {
+  border: 2px solid #000000 !important;
+  font-family: 'Fredoka', cursive, sans-serif;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+:root.theme-cartoon input {
+  border: 2px solid #000000 !important;
+  font-family: 'Fredoka', cursive, sans-serif;
+}

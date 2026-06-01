@@ -59,9 +59,9 @@
 		"update_engine_exports": "run-python3 tools/update_engine_exports.py"
 	},
 	"devDependencies": {
+		"@types/node": "^22.15.0",
 		"electron": "^33.0.0",
 		"electron-builder": "^25.1.8",
-		"@types/node": "^22.15.0",
 		"esbuild": "^0.25.4",
 		"eslint": "^8.57.0",
 		"eslint-plugin-unused-imports": "^4.1.0",
@@ -78,6 +78,7 @@
 	"dependencies": {
 		"@simonwep/pickr": "1.9.0",
 		"fflate": "0.8.2",
+		"music-metadata": "^11.12.3",
 		"three": "0.176.0"
 	},
 	"eslintConfig": {

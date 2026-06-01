@@ -1,8 +1,10 @@
 import React, { useRef, useEffect } from 'react';
 import { ArrowLeft, Sun, Moon } from 'lucide-react';
 import Sidebar from './Sidebar';
+import MusicPlayer from './MusicPlayer';
+import ThemeDropdown from './ThemeDropdown';
 
-export default function ViewerWorkspace({ library, activeFile, setActiveFile, onBack, isDarkMode, setIsDarkMode }) {
+export default function ViewerWorkspace({ library, activeFile, setActiveFile, onBack, isDarkMode, setIsDarkMode, themeStyle, setThemeStyle }) {
   const iframeRef = useRef(null);
 
   useEffect(() => {
@@ -270,31 +272,34 @@ export default function ViewerWorkspace({ library, activeFile, setActiveFile, on
           </div>
         </div>
         
-        <div style={{ display: 'flex', gap: '12px' }}>
-          <button
-            onClick={() => setIsDarkMode(!isDarkMode)}
-            style={{
-              background: 'var(--bg-color)',
-              border: '1px solid var(--border-color)',
-              borderRadius: '8px',
-              padding: '8px',
-              cursor: 'pointer',
-              color: 'var(--text-main)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              transition: 'all 0.2s ease'
-            }}
-            title="Toggle Theme"
-          >
-            {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
-          </button>
+        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+          <MusicPlayer />
+          
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'var(--bg-color)', padding: '4px', borderRadius: '12px', border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-sm)' }}>
+            <ThemeDropdown themeStyle={themeStyle} setThemeStyle={setThemeStyle} />
+            <button
+              onClick={() => setIsDarkMode(!isDarkMode)}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                cursor: 'pointer',
+                color: 'var(--text-main)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: '4px'
+              }}
+              title="Toggle Theme"
+            >
+              {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
+            </button>
+          </div>
         </div>
       </div>
 
       {/* Main Content Area */}
       <div style={{ flex: 1, display: 'flex', overflow: 'hidden', background: 'var(--bg-color)' }}>
-        <Sidebar library={library} activeFile={activeFile} setActiveFile={setActiveFile} />
+        <Sidebar library={library} activeFile={activeFile} setActiveFile={setActiveFile} themeStyle={themeStyle} />
         
         <div style={{ flex: 1, position: 'relative', background: 'var(--bg-color)' }}>
           <iframe

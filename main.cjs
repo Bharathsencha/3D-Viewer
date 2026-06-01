@@ -25,6 +25,60 @@ function createWindow() {
 }
 
 app.whenReady().then(() => {
+  const musicDir = path.join(__dirname, 'music');
+  if (!fs.existsSync(musicDir)) {
+    fs.mkdirSync(musicDir, { recursive: true });
+  }
+
+  ipcMain.handle('music:list', async () => {
+    try {
+      const mm = await import('music-metadata');
+      const files = await fs.promises.readdir(musicDir);
+      const validFiles = files.filter(f => f.endsWith('.mp3') || f.endsWith('.wav') || f.endsWith('.ogg'));
+      
+      const results = [];
+      for (const f of validFiles) {
+        const fullPath = path.join(musicDir, f);
+        let thumbnail = null;
+        try {
+          const metadata = await mm.parseFile(fullPath);
+          if (metadata.common.picture && metadata.common.picture.length > 0) {
+            const picture = metadata.common.picture[0];
+            thumbnail = `data:${picture.format};base64,${picture.data.toString('base64')}`;
+          }
+        } catch (err) {
+          // Ignore metadata errors
+        }
+        
+        results.push({
+          name: f,
+          path: fullPath,
+          thumbnail: thumbnail
+        });
+      }
+      return results;
+    } catch {
+      return [];
+    }
+  });
+
+  ipcMain.handle('music:upload', async () => {
+    const result = await dialog.showOpenDialog({
+      properties: ['openFile', 'multiSelections'],
+      filters: [{ name: 'Audio Files', extensions: ['mp3', 'wav', 'ogg'] }]
+    });
+    if (result.canceled) return [];
+    
+    const copiedFiles = [];
+    for (const filePath of result.filePaths) {
+      const fileName = path.basename(filePath);
+      const destPath = path.join(musicDir, fileName);
+      await fs.promises.copyFile(filePath, destPath);
+      copiedFiles.push({ name: fileName, path: destPath });
+    }
+    return copiedFiles;
+  });
+
   ipcMain.handle('dialog:openFiles', async () => {
     const result = await dialog.showOpenDialog({
       properties: ['openFile', 'multiSelections'],

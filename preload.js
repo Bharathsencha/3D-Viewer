@@ -8,5 +8,7 @@ contextBridge.exposeInMainWorld('api', {
   saveLibrary: (data) => ipcRenderer.invoke('library:save', data),
   loadLibrary: () => ipcRenderer.invoke('library:load'),
   basename: (filePath) => ipcRenderer.invoke('path:basename', filePath),
-  joinPaths: (...paths) => ipcRenderer.invoke('path:join', ...paths)
+  joinPaths: (...paths) => ipcRenderer.invoke('path:join', ...paths),
+  listMusic: () => ipcRenderer.invoke('music:list'),
+  uploadMusic: () => ipcRenderer.invoke('music:upload')
 });

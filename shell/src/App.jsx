@@ -8,6 +8,7 @@ export default function App() {
   const [currentFolderId, setCurrentFolderId] = useState(null); // null means root
   const [activeFile, setActiveFile] = useState(null); // The file to view in the 3D Viewer
   const [isDarkMode, setIsDarkMode] = useState(false); // Global theme state
+  const [themeStyle, setThemeStyle] = useState('modern'); // 'modern' | 'cartoon'
 
   // Load library on start
   useEffect(() => {
@@ -49,7 +50,12 @@ export default function App() {
     } else {
       document.documentElement.classList.remove('dark');
     }
-  }, [isDarkMode]);
+    if (themeStyle === 'cartoon') {
+      document.documentElement.classList.add('theme-cartoon');
+    } else {
+      document.documentElement.classList.remove('theme-cartoon');
+    }
+  }, [isDarkMode, themeStyle]);
 
   const navigateToDashboard = () => {
     setActiveFile(null);
@@ -66,6 +72,8 @@ export default function App() {
           onBack={navigateToDashboard}
           isDarkMode={isDarkMode}
           setIsDarkMode={setIsDarkMode}
+          themeStyle={themeStyle}
+          setThemeStyle={setThemeStyle}
         />
       ) : (
         <Dashboard 
@@ -76,6 +84,8 @@ export default function App() {
           setActiveFile={setActiveFile}
           isDarkMode={isDarkMode}
           setIsDarkMode={setIsDarkMode}
+          themeStyle={themeStyle}
+          setThemeStyle={setThemeStyle}
         />
       )}
     </div>

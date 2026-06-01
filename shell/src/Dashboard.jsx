@@ -1,7 +1,9 @@
 import React, { useMemo, useState } from 'react';
 import { Folder, File, ChevronRight, Home, Plus, Upload, Sun, Moon } from 'lucide-react';
+import MusicPlayer from './MusicPlayer';
+import ThemeDropdown from './ThemeDropdown';
 
-export default function Dashboard({ library, setLibrary, currentFolderId, setCurrentFolderId, setActiveFile, isDarkMode, setIsDarkMode }) {
+export default function Dashboard({ library, setLibrary, currentFolderId, setCurrentFolderId, setActiveFile, isDarkMode, setIsDarkMode, themeStyle, setThemeStyle }) {
   const [showPrompt, setShowPrompt] = useState(false);
   const [newFolderName, setNewFolderName] = useState('');
   
@@ -111,29 +113,40 @@ export default function Dashboard({ library, setLibrary, currentFolderId, setCur
       onDrop={handleDrop} 
       onDragOver={e => e.preventDefault()}
     >
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px' }}>
-        <h1 style={{ margin: 0, fontSize: '32px', fontWeight: 700, color: 'var(--accent-color)' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
+        <h1 style={{ 
+          margin: 0, 
+          fontSize: '36px', 
+          fontWeight: 700, 
+          color: 'var(--accent-color)', 
+          textShadow: themeStyle === 'cartoon' ? '3px 3px 0px var(--border-color)' : 'none',
+          WebkitTextStroke: themeStyle === 'cartoon' ? '1.5px var(--border-color)' : 'none',
+          fontFamily: themeStyle === 'cartoon' ? "'Fredoka', cursive" : "inherit"
+        }}>
           {currentFolder ? currentFolder.name : '3D Viewer'}
         </h1>
         <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
-          <button
-            onClick={() => setIsDarkMode(!isDarkMode)}
-            style={{
-              background: 'var(--surface-color)',
-              border: '1px solid var(--border-color)',
-              borderRadius: '8px',
-              padding: '8px',
-              cursor: 'pointer',
-              color: 'var(--text-main)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              transition: 'all 0.2s ease'
-            }}
-            title="Toggle Theme"
-          >
-            {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'var(--surface-color)', padding: '4px', borderRadius: '12px', border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-sm)' }}>
+            <ThemeDropdown themeStyle={themeStyle} setThemeStyle={setThemeStyle} />
+            <button
+              onClick={() => setIsDarkMode(!isDarkMode)}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                cursor: 'pointer',
+                color: 'var(--text-main)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: '4px'
+              }}
+              title="Toggle Theme"
+            >
+              {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
+            </button>
+          </div>
+          
+          <MusicPlayer />
           <button 
             onClick={handleCreateFolder}
             style={{ 
@@ -159,16 +172,16 @@ export default function Dashboard({ library, setLibrary, currentFolderId, setCur
         </div>
       </div>
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '32px', color: 'var(--text-muted)', fontSize: '14px', fontWeight: 500 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '32px', color: 'var(--text-muted)', fontSize: '15px', fontWeight: 600 }}>
         {breadcrumbs.map((bc, idx) => (
           <React.Fragment key={idx}>
             <div 
-              style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', color: idx === breadcrumbs.length - 1 ? 'var(--accent-color)' : 'inherit' }}
+              style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', color: idx === breadcrumbs.length - 1 ? 'var(--accent-color)' : 'inherit' }}
               onClick={() => setCurrentFolderId(bc.id)}
             >
-              {idx === 0 ? <Home size={16} /> : bc.name}
+              {idx === 0 ? <Home size={22} strokeWidth={2.5} color={idx === breadcrumbs.length - 1 ? 'var(--accent-color)' : 'var(--text-main)'} /> : bc.name}
             </div>
-            {idx < breadcrumbs.length - 1 && <ChevronRight size={16} />}
+            {idx < breadcrumbs.length - 1 && <ChevronRight size={18} strokeWidth={2.5} />}
           </React.Fragment>
         ))}
       </div>
@@ -186,7 +199,7 @@ export default function Dashboard({ library, setLibrary, currentFolderId, setCur
                     background: 'var(--surface-color)',
                     padding: '24px',
                     borderRadius: '16px',
-                    boxShadow: 'var(--shadow-sm)',
+                    boxShadow: 'var(--shadow-md)',
                     cursor: 'pointer',
                     display: 'flex',
                     flexDirection: 'column',
@@ -196,20 +209,29 @@ export default function Dashboard({ library, setLibrary, currentFolderId, setCur
                   }}
                   onMouseEnter={e => {
                     e.currentTarget.style.transform = 'translateY(-4px)';
-                    e.currentTarget.style.boxShadow = 'var(--shadow-md)';
+                    e.currentTarget.style.boxShadow = 'var(--shadow-lg)';
                   }}
                   onMouseLeave={e => {
                     e.currentTarget.style.transform = 'none';
-                    e.currentTarget.style.boxShadow = 'var(--shadow-sm)';
+                    e.currentTarget.style.boxShadow = 'var(--shadow-md)';
                   }}
                 >
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <Folder size={32} color="var(--accent-color)" fill="var(--accent-color)" />
-                    <span style={{ background: '#F1F5F9', padding: '4px 8px', borderRadius: '12px', fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)' }}>
+                    {themeStyle === 'cartoon' ? (
+                      <svg width="32" height="32" viewBox="0 0 24 24" fill="var(--accent-color)" stroke="var(--border-color)" strokeWidth="2">
+                        <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+                        <circle cx="9" cy="13" r="1.5" fill="#000"></circle>
+                        <circle cx="15" cy="13" r="1.5" fill="#000"></circle>
+                        <path d="M10 16c1.5 1.5 2.5 1.5 4 0" stroke="#000" strokeWidth="1.5" strokeLinecap="round"></path>
+                      </svg>
+                    ) : (
+                      <Folder size={32} color="var(--accent-color)" fill="var(--accent-color)" />
+                    )}
+                    <span style={{ background: '#F1F5F9', padding: '4px 8px', borderRadius: '12px', fontSize: '12px', fontWeight: 600, color: '#64748B' }}>
                       {folder.children ? folder.children.length : 0} items
                     </span>
                   </div>
-                  <div style={{ fontWeight: 600, fontSize: '16px', color: 'var(--text-main)', marginTop: '8px' }}>
+                  <div style={{ fontWeight: 600, fontSize: '16px', color: 'var(--text-main)', marginTop: '8px', paddingTop: '12px', borderTop: '2px dashed var(--border-color)' }}>
                     {folder.name}
                   </div>
                 </div>
@@ -230,7 +252,7 @@ export default function Dashboard({ library, setLibrary, currentFolderId, setCur
                     background: 'var(--surface-color)',
                     padding: '24px',
                     borderRadius: '16px',
-                    boxShadow: 'var(--shadow-sm)',
+                    boxShadow: 'var(--shadow-md)',
                     cursor: file.missing ? 'not-allowed' : 'pointer',
                     display: 'flex',
                     flexDirection: 'column',
@@ -242,16 +264,26 @@ export default function Dashboard({ library, setLibrary, currentFolderId, setCur
                   onMouseEnter={e => {
                     if (file.missing) return;
                     e.currentTarget.style.transform = 'translateY(-4px)';
-                    e.currentTarget.style.boxShadow = 'var(--shadow-md)';
+                    e.currentTarget.style.boxShadow = 'var(--shadow-lg)';
                   }}
                   onMouseLeave={e => {
                     if (file.missing) return;
                     e.currentTarget.style.transform = 'none';
-                    e.currentTarget.style.boxShadow = 'var(--shadow-sm)';
+                    e.currentTarget.style.boxShadow = 'var(--shadow-md)';
                   }}
                 >
-                  <File size={32} color="#3B82F6" strokeWidth={1.5} />
-                  <div style={{ fontWeight: 600, fontSize: '14px', color: 'var(--text-main)', marginTop: '8px', wordBreak: 'break-all' }}>
+                  {themeStyle === 'cartoon' ? (
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="#ffffff" stroke="var(--border-color)" strokeWidth="2">
+                      <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path>
+                      <polyline points="13 2 13 9 20 9"></polyline>
+                      <circle cx="9" cy="14" r="1.5" fill="#000"></circle>
+                      <circle cx="15" cy="14" r="1.5" fill="#000"></circle>
+                      <path d="M10 17c1.5 1.5 2.5 1.5 4 0" stroke="#000" strokeWidth="1.5" strokeLinecap="round"></path>
+                    </svg>
+                  ) : (
+                    <File size={32} color="#3B82F6" strokeWidth={1.5} />
+                  )}
+                  <div style={{ fontWeight: 600, fontSize: '14px', color: 'var(--text-main)', marginTop: '8px', paddingTop: '12px', borderTop: '2px dashed var(--border-color)', wordBreak: 'break-all' }}>
                     {file.name}
                   </div>
                   {file.missing && <div style={{ color: '#EF4444', fontSize: '12px', fontWeight: 500 }}>File missing</div>}
