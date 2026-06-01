@@ -10,5 +10,6 @@ contextBridge.exposeInMainWorld('api', {
   basename: (filePath) => ipcRenderer.invoke('path:basename', filePath),
   joinPaths: (...paths) => ipcRenderer.invoke('path:join', ...paths),
   listMusic: () => ipcRenderer.invoke('music:list'),
-  uploadMusic: () => ipcRenderer.invoke('music:upload')
+  uploadMusic: () => ipcRenderer.invoke('music:upload'),
+  getFileSize: (filePath) => ipcRenderer.invoke('fs:stat', filePath)
 });

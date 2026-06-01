@@ -140,6 +140,15 @@ app.whenReady().then(() => {
     }
   });
 
+  ipcMain.handle('fs:stat', async (event, filePath) => {
+    try {
+      const stats = await fs.promises.stat(filePath);
+      return { size: stats.size, mtimeMs: stats.mtimeMs };
+    } catch (e) {
+      return { size: 0, mtimeMs: 0 };
+    }
+  });
+
   ipcMain.handle('fs:checkExists', async (event, filePath) => {
     try {
       await fs.promises.access(filePath);
