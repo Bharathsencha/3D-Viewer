@@ -273,8 +273,11 @@ export default function ViewerWorkspace({ library, activeFile, setActiveFile, on
         </div>
         
         <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-          <MusicPlayer />
-          
+          {themeStyle === 'barbie' && (
+            <div style={{ fontSize: '12px', color: 'var(--text-main)', background: 'var(--bg-color)', padding: '4px 12px', borderRadius: '12px', border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-sm)' }}>
+              Credit: <a href="https://www.youtube.com/watch?v=ZyhrYis509A" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-color)', fontWeight: 600 }}>Aqua - Barbie Girl</a>
+            </div>
+          )}
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'var(--bg-color)', padding: '4px', borderRadius: '12px', border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-sm)' }}>
             <ThemeDropdown themeStyle={themeStyle} setThemeStyle={setThemeStyle} />
             <button
@@ -294,6 +297,7 @@ export default function ViewerWorkspace({ library, activeFile, setActiveFile, on
               {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
             </button>
           </div>
+          <MusicPlayer themeStyle={themeStyle} />
         </div>
       </div>
 

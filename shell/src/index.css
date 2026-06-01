@@ -124,3 +124,45 @@ button {
   border: 2px solid #000000 !important;
   font-family: 'Fredoka', cursive, sans-serif;
 }
+
+/* BARBIE THEME OVERRIDES */
+:root.theme-barbie {
+  --bg-color: #f8bbd0;
+  --bg-pattern: url('/barbie.png');
+  --bg-position: center;
+  --bg-size: cover;
+  --surface-color: rgba(255, 255, 255, 0.85);
+  --border-color: #e91e63;
+  --text-main: #c2185b;
+  --text-muted: #880e4f;
+  --accent-color: #00b0ff;
+  --accent-hover: #0081cb;
+  --shadow-sm: 4px 4px 0px rgba(0, 176, 255, 0.5);
+  --shadow-md: 6px 6px 0px rgba(0, 176, 255, 0.5);
+  --shadow-lg: 8px 8px 0px rgba(0, 176, 255, 0.5);
+}
+
+:root.theme-barbie body {
+  font-family: 'Fredoka', cursive, sans-serif;
+  background-color: var(--bg-color);
+  background-image: var(--bg-pattern);
+  background-size: var(--bg-size);
+  background-position: var(--bg-position);
+  background-attachment: fixed;
+}
+
+:root.theme-barbie * {
+  border-width: 3px !important;
+}
+
+:root.theme-barbie button {
+  border: 3px solid var(--border-color) !important;
+  font-family: 'Fredoka', cursive, sans-serif;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+:root.theme-barbie input {
+  border: 3px solid var(--border-color) !important;
+  font-family: 'Fredoka', cursive, sans-serif;
+}

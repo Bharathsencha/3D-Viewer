@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Play, Pause, SkipForward, SkipBack, Music, Upload, List } from 'lucide-react';
 
-export default function MusicPlayer() {
+export default function MusicPlayer({ themeStyle }) {
   const [songs, setSongs] = useState([]);
   const [currentSong, setCurrentSong] = useState(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -24,10 +24,41 @@ export default function MusicPlayer() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  useEffect(() => {
+    if (songs.length > 0) {
+      const barbieSong = songs.find(s => s.name.toLowerCase().includes('barbie'));
+      
+      if (themeStyle === 'barbie') {
+        if (barbieSong && currentSong?.path !== barbieSong.path) {
+          playSong(barbieSong);
+        } else if (barbieSong && !isPlaying) {
+          audioRef.current.play();
+          setIsPlaying(true);
+        }
+      } else {
+        // If theme is NOT barbie, and current song is barbie, pause and clear it
+        if (currentSong && currentSong.path === barbieSong?.path) {
+          audioRef.current.pause();
+          setIsPlaying(false);
+          setCurrentSong(null);
+        }
+      }
+    }
+  }, [themeStyle, songs, currentSong]);
+
   const fetchSongs = async () => {
     try {
       const list = await window.api.listMusic();
       setSongs(list);
+      
+      // Auto-select barbie song if none selected
+      if (!currentSong && list.length > 0) {
+        const barbieSong = list.find(s => s.name.toLowerCase().includes('barbie'));
+        if (barbieSong) {
+          setCurrentSong(barbieSong);
+          audioRef.current.src = `file://${barbieSong.path}`;
+        }
+      }
     } catch (e) {
       console.error(e);
     }
@@ -181,7 +212,7 @@ export default function MusicPlayer() {
             border: '2px solid var(--border-color)',
             borderRadius: '12px',
             boxShadow: 'var(--shadow-md)',
-            width: '280px',
+            width: '320px',
             zIndex: 1000,
             padding: '8px',
             display: 'flex',
@@ -189,12 +220,12 @@ export default function MusicPlayer() {
             gap: '4px'
           }}>
             <div style={{ maxHeight: '140px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-              {songs.length === 0 ? (
+              {songs.filter(s => !s.name.toLowerCase().includes('barbie')).length === 0 ? (
                 <div style={{ padding: '8px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '14px' }}>
                   No music found
                 </div>
               ) : (
-                songs.map((song, idx) => (
+                songs.filter(s => !s.name.toLowerCase().includes('barbie')).map((song, idx) => (
                   <div 
                     key={idx} 
                     onClick={() => playSong(song)}

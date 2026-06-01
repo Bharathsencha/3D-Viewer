@@ -119,13 +119,18 @@ export default function Dashboard({ library, setLibrary, currentFolderId, setCur
           fontSize: '36px', 
           fontWeight: 700, 
           color: 'var(--accent-color)', 
-          textShadow: themeStyle === 'cartoon' ? '3px 3px 0px var(--border-color)' : 'none',
-          WebkitTextStroke: themeStyle === 'cartoon' ? '1.5px var(--border-color)' : 'none',
+          textShadow: themeStyle === 'cartoon' ? '3px 3px 0px var(--border-color)' : undefined,
+          WebkitTextStroke: themeStyle === 'cartoon' ? '1.5px var(--border-color)' : undefined,
           fontFamily: themeStyle === 'cartoon' ? "'Fredoka', cursive" : "inherit"
         }}>
           {currentFolder ? currentFolder.name : '3D Viewer'}
         </h1>
         <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
+          {themeStyle === 'barbie' && (
+            <div style={{ fontSize: '12px', color: 'var(--text-main)', background: 'var(--surface-color)', padding: '4px 12px', borderRadius: '12px', border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-sm)' }}>
+              Credit: <a href="https://www.youtube.com/watch?v=ZyhrYis509A" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-color)', fontWeight: 600 }}>Aqua - Barbie Girl</a>
+            </div>
+          )}
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'var(--surface-color)', padding: '4px', borderRadius: '12px', border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-sm)' }}>
             <ThemeDropdown themeStyle={themeStyle} setThemeStyle={setThemeStyle} />
             <button
@@ -145,8 +150,8 @@ export default function Dashboard({ library, setLibrary, currentFolderId, setCur
               {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
             </button>
           </div>
+          <MusicPlayer themeStyle={themeStyle} />
           
-          <MusicPlayer />
           <button 
             onClick={handleCreateFolder}
             style={{ 
@@ -323,6 +328,35 @@ export default function Dashboard({ library, setLibrary, currentFolderId, setCur
           </form>
         </div>
       )}
+
+      {/* GitHub Credit Footer */}
+      <div style={{ position: 'absolute', bottom: '16px', right: '24px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Powered by</span>
+        <a 
+          href="https://github.com/kovacsv/Online3DViewer" 
+          target="_blank" 
+          rel="noopener noreferrer"
+          style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: '4px',
+            color: 'var(--text-main)', 
+            textDecoration: 'none',
+            fontSize: '13px',
+            fontWeight: 600,
+            background: 'var(--surface-color)',
+            padding: '4px 8px',
+            borderRadius: '12px',
+            border: '1px solid var(--border-color)',
+            boxShadow: 'var(--shadow-sm)'
+          }}
+        >
+          <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path>
+          </svg>
+          Online3DViewer
+        </a>
+      </div>
     </div>
   );
 }

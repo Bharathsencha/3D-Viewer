@@ -45,15 +45,12 @@ export default function App() {
 
   // Apply global dark mode class to HTML element
   useEffect(() => {
-    if (isDarkMode) {
+    document.documentElement.className = '';
+    if (isDarkMode && themeStyle !== 'barbie') {
       document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
     }
-    if (themeStyle === 'cartoon') {
-      document.documentElement.classList.add('theme-cartoon');
-    } else {
-      document.documentElement.classList.remove('theme-cartoon');
+    if (themeStyle) {
+      document.documentElement.classList.add(`theme-${themeStyle}`);
     }
   }, [isDarkMode, themeStyle]);
 

@@ -30,6 +30,13 @@ app.whenReady().then(() => {
     fs.mkdirSync(musicDir, { recursive: true });
   }
 
+  // Copy default Barbie song if it doesn't exist in the music folder
+  const defaultSongSource = path.join(__dirname, 'assets', 'default_music', 'barbie.mp3');
+  const defaultSongDest = path.join(musicDir, 'barbie.mp3');
+  if (fs.existsSync(defaultSongSource) && !fs.existsSync(defaultSongDest)) {
+    fs.copyFileSync(defaultSongSource, defaultSongDest);
+  }
+
   ipcMain.handle('music:list', async () => {
     try {
       const mm = await import('music-metadata');

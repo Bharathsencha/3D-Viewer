@@ -1,34 +1,30 @@
-# Online 3D Viewer
+# Online3DViewer Desktop
 
-[![Build status](https://github.com/kovacsv/Online3DViewer/actions/workflows/build.yml/badge.svg)](https://github.com/kovacsv/Online3DViewer/actions/workflows/build.yml)
-[![npm version](https://badge.fury.io/js/online-3d-viewer.svg)](https://badge.fury.io/js/online-3d-viewer)
-[![DeepScan grade](https://deepscan.io/api/teams/16586/projects/19893/branches/524595/badge/grade.svg)](https://deepscan.io/dashboard#view=project&tid=16586&pid=19893&bid=524595)
+A modern, highly customizable desktop application for viewing 3D models. This project is a desktop wrapper and UI overhaul of the original Online3DViewer project, bringing it to the desktop using Electron and React.
 
-Online 3D Viewer (https://3dviewer.net) is a free and open source web solution to visualize and explore 3D models in your browser. This repository contains the source code of the website and the library behind it.
+## Features
 
-[Live website](https://3dviewer.net) &nbsp;-&nbsp; [Website documentation](https://3dviewer.net/info) &nbsp;-&nbsp; [Developer documentation](https://kovacsv.github.io/Online3DViewer) &nbsp;-&nbsp; [Discord server](https://discord.gg/C7x9u833yN)
+- **Multiple Themes**: Modern UI, Cartoon UI, and a custom Barbie Theme!
+- **Built-in Music Player**: Play background music while viewing your 3D models. Automatically extracts album art for your uploaded songs.
+- **File Organization**: Group your 3D models into custom folders with a drag-and-drop dashboard interface.
+- **Offline Support**: Runs entirely locally on your machine.
 
-## Example
+## Credits & Acknowledgements
 
-![Start Page](assets/images/3dviewer_net_start_page.png?raw=true)
+### Original 3D Viewer Engine
+The core 3D model parsing and rendering engine used in this desktop app is powered by the incredible work of [kovacsv's Online3DViewer](https://github.com/kovacsv/Online3DViewer). This project heavily relies on their original code. They deserve full credit for the actual 3D viewer engine!
 
-[Check the live version!](https://3dviewer.net/#model=https://raw.githubusercontent.com/kovacsv/Online3DViewer/dev/test/testfiles/gltf/DamagedHelmet/glTF-Binary/DamagedHelmet.glb)
+### Media Disclaimer
+**I do not own any of the songs, audio files, or background images included in this project.** 
+Specifically, the default song used in the Barbie Theme is:
+- **Aqua - Barbie Girl (Official Music Video)**
+- [YouTube Link](https://www.youtube.com/watch?v=ZyhrYis509A)
+- All rights belong to Aqua and their respective record labels.
 
-## Supported file formats
+Any music uploaded by users is stored locally and is NOT pushed to this repository.
 
-* **Import**: 3dm, 3ds, 3mf, amf, bim, brep, dae, fbx, fcstd, gltf, ifc, iges, step, stl, obj, off, ply, wrl.
-* **Export**: 3dm, bim, gltf, obj, off, stl, ply.
+## License
 
-## External Libraries
+This project has been heavily modified and is now licensed under the **GNU General Public License v3.0 (GPLv3)**. See `LICENSE.md` for more details. 
 
-Online 3D Viewer uses these wonderful libraries: [three.js](https://github.com/mrdoob/three.js), [pickr](https://github.com/Simonwep/pickr), [fflate](https://github.com/101arrowz/fflate), [draco](https://github.com/google/draco), [rhino3dm](https://github.com/mcneel/rhino3dm), [web-ifc](https://github.com/tomvandig/web-ifc), [occt-import-js](https://github.com/kovacsv/occt-import-js).
-
-## Desktop App (Electron)
-
-You can run and build this viewer as a standalone desktop application using Electron:
-
-1. Create the production website package: `npm run create_package`
-2. Test the Electron app locally: `npm run electron`
-3. Build the Windows executable (requires wine64 on Linux): `npm run dist`
-
-The final executable will be located in the `dist/` directory.
+*(Note: The original engine code retains its original MIT license as per the terms of `kovacsv/Online3DViewer`)*.
