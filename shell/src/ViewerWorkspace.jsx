@@ -1,5 +1,5 @@
-import React, { useRef, useEffect } from 'react';
-import { ArrowLeft, Sun, Moon } from 'lucide-react';
+import React, { useRef, useEffect, useState } from 'react';
+import { ArrowLeft, Settings, Folder, File, ChevronRight, Upload, Trash2, Home, Sun, Moon, Cat, Brush } from 'lucide-react';
 import Sidebar from './Sidebar';
 import MusicPlayer from './MusicPlayer';
 import ThemeDropdown from './ThemeDropdown';
@@ -278,6 +278,16 @@ export default function ViewerWorkspace({ library, activeFile, setActiveFile, on
               Credit: <a href="https://www.youtube.com/watch?v=ZyhrYis509A" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-color)', fontWeight: 600 }}>Aqua - Barbie Girl</a>
             </div>
           )}
+          {themeStyle === 'vicecity' && (
+            <div style={{ fontSize: '12px', color: 'var(--text-main)', background: 'var(--bg-color)', padding: '4px 12px', borderRadius: '12px', border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-sm)' }}>
+              Credit: <a href="https://www.youtube.com/watch?v=W552E5g0Rcw" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-color)', fontWeight: 600 }}>GTA Vice City Theme</a>
+            </div>
+          )}
+          {themeStyle === 'ghibli' && (
+            <div style={{ fontSize: '12px', color: 'var(--text-main)', background: 'var(--bg-color)', padding: '4px 12px', borderRadius: '12px', border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-sm)' }}>
+              Credit: <a href="https://studioghibli.com.au" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-color)', fontWeight: 600 }}>Studio Ghibli Theme</a>
+            </div>
+          )}
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'var(--bg-color)', padding: '4px', borderRadius: '12px', border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-sm)' }}>
             <ThemeDropdown themeStyle={themeStyle} setThemeStyle={setThemeStyle} />
             <button
@@ -294,10 +304,14 @@ export default function ViewerWorkspace({ library, activeFile, setActiveFile, on
               }}
               title="Toggle Theme"
             >
-              {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
+              {themeStyle === 'ghibli' ? (
+                isDarkMode ? <Brush size={20} /> : <Cat size={20} />
+              ) : (
+                isDarkMode ? <Sun size={20} /> : <Moon size={20} />
+              )}
             </button>
           </div>
-          <MusicPlayer themeStyle={themeStyle} />
+          <MusicPlayer themeStyle={themeStyle} isDarkMode={isDarkMode} />
         </div>
       </div>
 

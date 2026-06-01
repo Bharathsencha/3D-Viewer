@@ -37,6 +37,21 @@ app.whenReady().then(() => {
     fs.copyFileSync(defaultSongSource, defaultSongDest);
   }
 
+  // Copy default Vice City song if it doesn't exist in the music folder
+  const vcSongSource = path.join(__dirname, 'assets', 'default_music', 'vice_city.mp3');
+  const vcSongDest = path.join(musicDir, 'vice_city.mp3');
+  if (fs.existsSync(vcSongSource) && !fs.existsSync(vcSongDest)) {
+    fs.copyFileSync(vcSongSource, vcSongDest);
+  }
+
+  const ghibli1Source = path.join(__dirname, 'assets', 'default_music', 'ghibli1.mp3');
+  const ghibli1Dest = path.join(musicDir, 'ghibli1.mp3');
+  if (fs.existsSync(ghibli1Source) && !fs.existsSync(ghibli1Dest)) fs.copyFileSync(ghibli1Source, ghibli1Dest);
+
+  const ghibli2Source = path.join(__dirname, 'assets', 'default_music', 'ghibli2.mp3');
+  const ghibli2Dest = path.join(musicDir, 'ghibli2.mp3');
+  if (fs.existsSync(ghibli2Source) && !fs.existsSync(ghibli2Dest)) fs.copyFileSync(ghibli2Source, ghibli2Dest);
+
   ipcMain.handle('music:list', async () => {
     try {
       const mm = await import('music-metadata');

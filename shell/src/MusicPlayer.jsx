@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Play, Pause, SkipForward, SkipBack, Music, Upload, List } from 'lucide-react';
 
-export default function MusicPlayer({ themeStyle }) {
+export default function MusicPlayer({ themeStyle, isDarkMode }) {
   const [songs, setSongs] = useState([]);
   const [currentSong, setCurrentSong] = useState(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -21,12 +21,20 @@ export default function MusicPlayer({ themeStyle }) {
     };
     
     document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      if (audioRef.current) {
+        audioRef.current.pause();
+      }
+    };
   }, []);
 
   useEffect(() => {
     if (songs.length > 0) {
       const barbieSong = songs.find(s => s.name.toLowerCase().includes('barbie'));
+      const vcSong = songs.find(s => s.name.toLowerCase().includes('vice_city'));
+      const ghibli1Song = songs.find(s => s.name.toLowerCase().includes('ghibli1'));
+      const ghibli2Song = songs.find(s => s.name.toLowerCase().includes('ghibli2'));
       
       if (themeStyle === 'barbie') {
         if (barbieSong && currentSong?.path !== barbieSong.path) {
@@ -35,16 +43,31 @@ export default function MusicPlayer({ themeStyle }) {
           audioRef.current.play();
           setIsPlaying(true);
         }
+      } else if (themeStyle === 'vicecity') {
+        if (vcSong && currentSong?.path !== vcSong.path) {
+          playSong(vcSong);
+        } else if (vcSong && !isPlaying) {
+          audioRef.current.play();
+          setIsPlaying(true);
+        }
+      } else if (themeStyle === 'ghibli') {
+        const targetSong = isDarkMode ? ghibli2Song : ghibli1Song;
+        if (targetSong && currentSong?.path !== targetSong.path) {
+          playSong(targetSong);
+        } else if (targetSong && !isPlaying) {
+          audioRef.current.play();
+          setIsPlaying(true);
+        }
       } else {
-        // If theme is NOT barbie, and current song is barbie, pause and clear it
-        if (currentSong && currentSong.path === barbieSong?.path) {
+        // If theme is NOT a specific music theme, and current song is one of the theme songs, pause and clear it
+        if (currentSong && (currentSong.path === barbieSong?.path || currentSong.path === vcSong?.path || currentSong.path === ghibli1Song?.path || currentSong.path === ghibli2Song?.path)) {
           audioRef.current.pause();
           setIsPlaying(false);
           setCurrentSong(null);
         }
       }
     }
-  }, [themeStyle, songs, currentSong]);
+  }, [themeStyle, isDarkMode, songs, currentSong]);
 
   const fetchSongs = async () => {
     try {
@@ -220,12 +243,12 @@ export default function MusicPlayer({ themeStyle }) {
             gap: '4px'
           }}>
             <div style={{ maxHeight: '140px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-              {songs.filter(s => !s.name.toLowerCase().includes('barbie')).length === 0 ? (
+              {songs.filter(s => !s.name.toLowerCase().includes('barbie') && !s.name.toLowerCase().includes('vice_city') && !s.name.toLowerCase().includes('ghibli')).length === 0 ? (
                 <div style={{ padding: '8px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '14px' }}>
                   No music found
                 </div>
               ) : (
-                songs.filter(s => !s.name.toLowerCase().includes('barbie')).map((song, idx) => (
+                songs.filter(s => !s.name.toLowerCase().includes('barbie') && !s.name.toLowerCase().includes('vice_city') && !s.name.toLowerCase().includes('ghibli')).map((song, idx) => (
                   <div 
                     key={idx} 
                     onClick={() => playSong(song)}

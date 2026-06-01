@@ -166,3 +166,110 @@ button {
   border: 3px solid var(--border-color) !important;
   font-family: 'Fredoka', cursive, sans-serif;
 }
+
+/* VICE CITY THEME OVERRIDES */
+:root.theme-vicecity {
+  --bg-color: #0d0121;
+  --bg-pattern: url('/vice_city.jpg');
+  --bg-position: center;
+  --bg-size: cover;
+  --surface-color: rgba(13, 1, 33, 0.85);
+  --border-color: #ff00a0; /* neon pink */
+  --text-main: #00ffff; /* neon cyan */
+  --text-muted: #ff66c4;
+  --accent-color: #ff00a0;
+  --accent-hover: #00ffff;
+  --shadow-sm: 4px 4px 0px rgba(0, 255, 255, 0.5);
+  --shadow-md: 6px 6px 0px rgba(0, 255, 255, 0.5);
+  --shadow-lg: 8px 8px 0px rgba(0, 255, 255, 0.5);
+}
+
+:root.theme-vicecity body {
+  font-family: 'Courier New', Courier, monospace;
+  background-color: var(--bg-color);
+  background-image: var(--bg-pattern);
+  background-size: var(--bg-size);
+  background-position: var(--bg-position);
+  background-attachment: fixed;
+}
+
+:root.theme-vicecity * {
+  border-width: 2px !important;
+  border-color: var(--border-color) !important;
+}
+
+:root.theme-vicecity button {
+  font-family: 'Courier New', Courier, monospace;
+  text-transform: uppercase;
+  font-weight: 700;
+  box-shadow: 0 0 10px rgba(255, 0, 160, 0.5) !important;
+}
+
+:root.theme-vicecity input {
+  font-family: 'Courier New', Courier, monospace;
+  box-shadow: 0 0 10px rgba(255, 0, 160, 0.5) !important;
+}
+
+/* GHIBLI THEME OVERRIDES */
+:root.theme-ghibli {
+  --bg-color: #e0f7fa;
+  --bg-pattern: url('/ghibli1.jpg');
+  --bg-position: center;
+  --bg-size: cover;
+  --surface-color: rgba(255, 255, 255, 0.85);
+  --border-color: #81c784;
+  --text-main: #2e7d32;
+  --text-muted: #66bb6a;
+  --accent-color: #4caf50;
+  --accent-hover: #388e3c;
+  --shadow-sm: 4px 4px 0px rgba(129, 199, 132, 0.5);
+  --shadow-md: 6px 6px 0px rgba(129, 199, 132, 0.5);
+  --shadow-lg: 8px 8px 0px rgba(129, 199, 132, 0.5);
+}
+
+:root.dark.theme-ghibli {
+  --bg-color: #fff9c4;
+  --bg-pattern: url('/ghibli2.jpg');
+  --surface-color: rgba(255, 255, 255, 0.85);
+  --border-color: #ffb74d;
+  --text-main: #e65100;
+  --text-muted: #ff9800;
+  --accent-color: #fb8c00;
+  --accent-hover: #f57c00;
+  --shadow-sm: 4px 4px 0px rgba(255, 183, 77, 0.5);
+  --shadow-md: 6px 6px 0px rgba(255, 183, 77, 0.5);
+  --shadow-lg: 8px 8px 0px rgba(255, 183, 77, 0.5);
+}
+
+:root.theme-ghibli body {
+  font-family: 'Quicksand', 'Inter', sans-serif;
+  background-color: var(--bg-color);
+  background-image: var(--bg-pattern);
+  background-size: var(--bg-size);
+  background-position: var(--bg-position);
+  background-attachment: fixed;
+}
+
+:root.theme-ghibli button {
+  border-radius: 20px !important;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+:root.theme-ghibli * {
+  border-radius: 12px;
+}
+
+:root.theme-ghibli h1, 
+:root.theme-ghibli h2, 
+:root.theme-ghibli span, 
+:root.theme-ghibli div {
+  text-shadow: 0 0 8px rgba(255, 255, 255, 0.8), 0 0 12px rgba(255, 255, 255, 0.8);
+}
+
+:root.dark.theme-ghibli h1, 
+:root.dark.theme-ghibli h2, 
+:root.dark.theme-ghibli span, 
+:root.dark.theme-ghibli div {
+  text-shadow: 0 0 8px rgba(255, 255, 255, 0.6), 0 0 12px rgba(255, 255, 255, 0.6);
+}

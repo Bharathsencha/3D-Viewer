@@ -18,7 +18,9 @@ export default function ThemeDropdown({ themeStyle, setThemeStyle }) {
   const options = [
     { value: 'modern', label: 'Modern' },
     { value: 'cartoon', label: 'Cartoonish' },
-    { value: 'barbie', label: 'Barbie' }
+    { value: 'barbie', label: 'Barbie' },
+    { value: 'vicecity', label: 'Vice City' },
+    { value: 'ghibli', label: 'Ghibli' }
   ];
 
   const selectedOption = options.find(o => o.value === themeStyle) || options[0];
