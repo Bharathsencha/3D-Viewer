@@ -5,5 +5,7 @@ win:
   target: portable
 files:
   - "build/package/website/**/*"
+  - "shell/dist/**/*"
   - "main.cjs"
+  - "preload.js"
   - "package.json"

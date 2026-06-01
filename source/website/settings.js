@@ -31,7 +31,7 @@ export class Settings
 
     LoadFromCookies ()
     {
-        this.themeId = CookieGetIntVal ('ov_theme_id', GetPreferredColorScheme ());
+        this.themeId = Theme.Light; // Let React app control theme
         this.environmentMapName = CookieGetStringVal ('ov_environment_map', 'fishermans_bastion');
         this.backgroundIsEnvMap = CookieGetBoolVal ('ov_background_is_envmap', false);
         this.backgroundColor = CookieGetRGBAColorVal ('ov_background_color', new RGBAColor (255, 255, 255, 255));

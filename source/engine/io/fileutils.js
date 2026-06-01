@@ -60,7 +60,7 @@ export function RequestUrl (url, onProgress)
 		};
 
 		request.onload = () => {
-			if (request.status === 200) {
+			if (request.status === 200 || request.status === 0) {
 				resolve (request.response);
 			} else {
 				reject ();

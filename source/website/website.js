@@ -743,16 +743,7 @@ export class Website
             });
         });
 
-        let selectedTheme = (this.settings.themeId === Theme.Light ? 1 : 0);
-        AddRadioButton (this.toolbar, ['dark_mode', 'light_mode'], [Loc ('Dark mode'), Loc ('Light mode')], selectedTheme, ['align_right'], (buttonIndex) => {
-            if (buttonIndex === 0) {
-                this.settings.themeId = Theme.Dark;
-            } else if (buttonIndex === 1) {
-                this.settings.themeId = Theme.Light;
-            }
-            HandleEvent ('theme_changed', this.settings.themeId === Theme.Light ? 'light' : 'dark');
-            this.SwitchTheme (this.settings.themeId, true);
-        });
+        // Theme toggle removed to be handled globally by the React app
 
         this.parameters.fileInput.addEventListener ('change', (ev) => {
             if (ev.target.files.length > 0) {
@@ -959,18 +950,6 @@ export class Website
 
     InitCookieConsent ()
     {
-        let accepted = CookieGetBoolVal ('ov_cookie_consent', false);
-        if (accepted) {
-            return;
-        }
-
-        let text = Loc ('This website uses cookies to offer you better user experience. See the details at the <a target="_blank" href="info/cookies.html">Cookies Policy</a> page.');
-        let popupDiv = AddDiv (document.body, 'ov_bottom_floating_panel');
-        AddDiv (popupDiv, 'ov_floating_panel_text', text);
-        let acceptButton = AddDiv (popupDiv, 'ov_button ov_floating_panel_button', Loc ('Accept'));
-        acceptButton.addEventListener ('click', () => {
-            CookieSetBoolVal ('ov_cookie_consent', true);
-            popupDiv.remove ();
-        });
+        // Removed cookie banner
     }
 }

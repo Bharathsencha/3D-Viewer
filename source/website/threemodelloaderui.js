@@ -26,7 +26,7 @@ export class ThreeModelLoaderUI
                 this.CloseDialogIfOpen ();
                 callbacks.onStart ();
                 progressDialog = new ProgressDialog ();
-                progressDialog.Init (Loc ('Loading Model'));
+                progressDialog.Init (Loc ('Loading...'));
                 progressDialog.Open ();
             },
             onFileListProgress : (current, total) => {
@@ -41,7 +41,7 @@ export class ThreeModelLoaderUI
                 });
             },
             onImportStart : () => {
-                progressDialog.SetText (Loc ('Importing Model'));
+                progressDialog.SetText (Loc ('Loading...'));
             },
             onVisualizationStart : () => {
                 progressDialog.SetText (Loc ('Visualizing Model'));
