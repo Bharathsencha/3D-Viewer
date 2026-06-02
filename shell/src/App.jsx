@@ -72,6 +72,7 @@ export default function App() {
       {activeFile ? (
         <ViewerWorkspace 
           library={library}
+          setLibrary={setLibrary}
           activeFile={activeFile} 
           onBack={navigateToDashboard}
           isDarkMode={isDarkMode}

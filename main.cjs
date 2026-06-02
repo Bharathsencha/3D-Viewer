@@ -11,7 +11,8 @@ function createWindow() {
       contextIsolation: true,
       webSecurity: false, // needed so local .3dm files can be loaded via file:// protocol
       preload: path.join(__dirname, 'preload.js')
-    }
+    },
+    icon: path.join(__dirname, 'assets', 'icon.png')
   });
 
   // Open in full screen (maximized) by default
@@ -25,7 +26,7 @@ function createWindow() {
 }
 
 app.whenReady().then(() => {
-  const musicDir = path.join(__dirname, 'music');
+  const musicDir = path.join(app.getPath('userData'), 'music');
   if (!fs.existsSync(musicDir)) {
     fs.mkdirSync(musicDir, { recursive: true });
   }

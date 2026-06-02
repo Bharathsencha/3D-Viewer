@@ -1,13 +1,26 @@
-import { SetDomElementHeight, GetDomElementOuterHeight } from '../engine/viewer/domutils.js';
+import { AddDiv, SetDomElementHeight, GetDomElementOuterHeight } from '../engine/viewer/domutils.js';
 import { NavigatorPanel } from './navigatorpanel.js';
 import { TreeViewButton, TreeViewButtonItem, TreeViewGroupItem, TreeViewSingleItem } from './treeview.js';
 import { Loc } from '../engine/core/localization.js';
+import { AddSvgIconElement } from './utils.js';
 
 export class NavigatorFilesPanel extends NavigatorPanel
 {
     constructor (parentDiv)
     {
         super (parentDiv);
+        this.titleDiv.classList.add ('withbuttons');
+        this.titleButtonsDiv = AddDiv (this.titleDiv, 'ov_navigator_tree_title_buttons');
+        let openButton = AddDiv (this.titleButtonsDiv, 'ov_navigator_button');
+        openButton.setAttribute ('alt', Loc ('Open file from your device'));
+        openButton.setAttribute ('title', Loc ('Open file from your device'));
+        openButton.classList.add ('right');
+        AddSvgIconElement (openButton, 'open');
+        openButton.addEventListener ('click', () => {
+            if (this.callbacks && this.callbacks.onFileBrowseButtonClicked) {
+                this.callbacks.onFileBrowseButtonClicked ();
+            }
+        });
     }
 
     GetName ()

@@ -1,7 +1,8 @@
 {
-	"name": "online-3d-viewer",
-	"version": "0.18.0",
+	"name": "3d-viewer",
+	"version": "2.0.0",
 	"description": "Online 3D Viewer",
+	"author": "Bharath <bharath@example.com>",
 	"license": "MIT",
 	"type": "module",
 	"main": "main.cjs",
@@ -131,5 +132,27 @@
 			"no-use-before-define": "off",
 			"unused-imports/no-unused-imports": "error"
 		}
+	},
+	"build": {
+		"appId": "com.online3dviewer.app",
+		"productName": "3D Viewer",
+		"directories": {
+			"output": "dist"
+		},
+		"asar": false,
+		"win": {
+			"target": "nsis",
+			"icon": "assets/icon.ico"
+		},
+		"linux": {
+			"icon": "assets/icon.png"
+		},
+		"files": [
+			"main.cjs",
+			"preload.js",
+			"shell/dist/**/*",
+			"build/package/website/**/*",
+			"assets/**/*"
+		]
 	}
 }

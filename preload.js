@@ -1,4 +1,4 @@
-const { contextBridge, ipcRenderer } = require('electron');
+const { contextBridge, ipcRenderer, webUtils } = require('electron');
 
 contextBridge.exposeInMainWorld('api', {
   openFiles: () => ipcRenderer.invoke('dialog:openFiles'),
@@ -11,5 +11,6 @@ contextBridge.exposeInMainWorld('api', {
   joinPaths: (...paths) => ipcRenderer.invoke('path:join', ...paths),
   listMusic: () => ipcRenderer.invoke('music:list'),
   uploadMusic: () => ipcRenderer.invoke('music:upload'),
-  getFileSize: (filePath) => ipcRenderer.invoke('fs:stat', filePath)
+  getFileSize: (filePath) => ipcRenderer.invoke('fs:stat', filePath),
+  getFilePath: (file) => webUtils.getPathForFile(file)
 });

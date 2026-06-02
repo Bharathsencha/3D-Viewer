@@ -4,7 +4,7 @@ import Sidebar from './Sidebar';
 import MusicPlayer from './MusicPlayer';
 import ThemeDropdown from './ThemeDropdown';
 
-export default function ViewerWorkspace({ library, activeFile, setActiveFile, onBack, isDarkMode, setIsDarkMode, themeStyle, setThemeStyle, gtaTheme, setGtaTheme }) {
+export default function ViewerWorkspace({ library, setLibrary, activeFile, setActiveFile, onBack, isDarkMode, setIsDarkMode, themeStyle, setThemeStyle, gtaTheme, setGtaTheme }) {
   const iframeRef = useRef(null);
 
   useEffect(() => {
@@ -247,10 +247,48 @@ export default function ViewerWorkspace({ library, activeFile, setActiveFile, on
         if (doc) {
           if (isDarkTheme) doc.body.classList.add('dark-theme');
           else doc.body.classList.remove('dark-theme');
+          
+          // Inject dynamic theme styles for the toolbar
+          let customStyle = doc.getElementById('dynamic_theme_style');
+          if (!customStyle) {
+            customStyle = doc.createElement('style');
+            customStyle.id = 'dynamic_theme_style';
+            doc.head.appendChild(customStyle);
+          }
+          
+          const parentStyle = getComputedStyle(document.documentElement);
+          const surface = parentStyle.getPropertyValue('--surface-color').trim() || '#fff';
+          const text = parentStyle.getPropertyValue('--text-main').trim() || '#000';
+          const border = parentStyle.getPropertyValue('--border-color').trim() || '#ccc';
+          const accent = parentStyle.getPropertyValue('--accent-color').trim() || '#3b82f6';
+          const bg = parentStyle.getPropertyValue('--bg-color').trim() || '#f0f2f5';
+
+          customStyle.innerHTML = `
+            .ov_toolbar { background: ${surface} !important; border-bottom: 1px solid ${border} !important; }
+            .ov_toolbar_button { fill: ${text} !important; color: ${text} !important; }
+            .ov_toolbar_button:hover { background: ${accent} !important; fill: #fff !important; color: #fff !important; }
+            .ov_toolbar_separator { background: ${border} !important; }
+            /* Update icon colors */
+            .ov_toolbar svg { stroke: ${text} !important; }
+            .ov_toolbar_button:hover svg { stroke: #fff !important; }
+            /* Add gap in background to match bg */
+            body { background-color: ${bg} !important; }
+            .main_viewer { background-color: transparent !important; }
+          `;
         }
       } catch (err) {}
     }
-  }, [iframeRef, isDarkMode, themeStyle]);
+  }, [isDarkMode, themeStyle, activeFile]);
+
+  // Explicitly update the iframe hash when activeFile changes
+  useEffect(() => {
+    if (iframeRef.current && iframeRef.current.contentWindow) {
+      const newHash = activeFile ? `#model=file://${activeFile.path}` : '';
+      if (iframeRef.current.contentWindow.location.hash !== newHash) {
+        iframeRef.current.contentWindow.location.hash = newHash;
+      }
+    }
+  }, [activeFile]);
 
   // Use the file path as the hash URL for the viewer
   const iframeSrc = activeFile 
@@ -260,7 +298,7 @@ export default function ViewerWorkspace({ library, activeFile, setActiveFile, on
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
       {/* Top Header */}
-      <div style={{ height: '60px', borderBottom: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', padding: '0 24px', justifyContent: 'space-between', background: 'var(--surface-color)' }}>
+      <div style={{ position: 'relative', zIndex: 50, height: '60px', borderBottom: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', padding: '0 24px', justifyContent: 'space-between', background: 'var(--surface-color)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
           <button 
             onClick={onBack}
@@ -357,7 +395,7 @@ export default function ViewerWorkspace({ library, activeFile, setActiveFile, on
 
       {/* Main Content Area */}
       <div style={{ flex: 1, display: 'flex', overflow: 'hidden', background: 'var(--bg-color)' }}>
-        <Sidebar library={library} activeFile={activeFile} setActiveFile={setActiveFile} themeStyle={themeStyle} />
+        <Sidebar library={library} setLibrary={setLibrary} activeFile={activeFile} setActiveFile={setActiveFile} themeStyle={themeStyle} />
         
         <div style={{ flex: 1, position: 'relative', background: 'var(--bg-color)' }}>
           <iframe

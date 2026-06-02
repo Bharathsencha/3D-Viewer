@@ -14,6 +14,8 @@ export default function Dashboard({ library, setLibrary, currentFolderId, setCur
   const [nodeToDelete, setNodeToDelete] = useState(null);
   const [sortBy, setSortBy] = useState('newest'); // 'newest' | 'oldest' | 'name-asc' | 'name-desc' | 'size-desc' | 'size-asc'
   const [isSortOpen, setIsSortOpen] = useState(false);
+  const [selectedNodes, setSelectedNodes] = useState([]);
+  const [lastSelectedIndex, setLastSelectedIndex] = useState(null);
   const hasFetchedSizes = useRef(false);
 
   useEffect(() => {
@@ -79,6 +81,52 @@ export default function Dashboard({ library, setLibrary, currentFolderId, setCur
 
   const folders = sortNodes(currentNodes.filter(n => n.type === 'folder'));
   const files = sortNodes(currentNodes.filter(n => n.type === 'file'));
+  const allCurrentItems = [...folders, ...files];
+
+  useEffect(() => {
+    setSelectedNodes([]);
+    setLastSelectedIndex(null);
+  }, [currentFolderId, searchQuery]);
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (showPrompt || editingNodeId || nodeToDelete) return; // don't trigger if modal/editing
+      if (e.key === 'a' && (e.ctrlKey || e.metaKey)) {
+        e.preventDefault();
+        setSelectedNodes(allCurrentItems.map(item => item.id));
+      }
+      if (e.key === 'Delete' || e.key === 'Backspace') {
+        if (selectedNodes.length > 0) {
+          e.preventDefault();
+          setNodeToDelete('multiple');
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [allCurrentItems, selectedNodes, showPrompt, editingNodeId, nodeToDelete]);
+
+  const handleNodeClick = (e, node, index) => {
+    if (e.ctrlKey || e.metaKey) {
+      setSelectedNodes(prev => 
+        prev.includes(node.id) ? prev.filter(id => id !== node.id) : [...prev, node.id]
+      );
+      setLastSelectedIndex(index);
+    } else if (e.shiftKey && lastSelectedIndex !== null) {
+      const start = Math.min(lastSelectedIndex, index);
+      const end = Math.max(lastSelectedIndex, index);
+      const newSelection = allCurrentItems.slice(start, end + 1).map(n => n.id);
+      setSelectedNodes(newSelection);
+    } else {
+      setSelectedNodes([node.id]);
+      setLastSelectedIndex(index);
+      if (node.type === 'folder') {
+        setCurrentFolderId(node.id);
+      } else {
+        setActiveFile(node);
+      }
+    }
+  };
 
   // Search Logic
   const allFiles = useMemo(() => {
@@ -135,7 +183,10 @@ export default function Dashboard({ library, setLibrary, currentFolderId, setCur
 
   const deleteNodeFromFolder = (nodeId, currentList) => {
     return currentList
-      .filter(n => n.id !== nodeId)
+      .filter(n => {
+        if (Array.isArray(nodeId)) return !nodeId.includes(n.id);
+        return n.id !== nodeId;
+      })
       .map(n => {
         if (n.type === 'folder' && n.children) {
           return { ...n, children: deleteNodeFromFolder(nodeId, n.children) };
@@ -151,7 +202,12 @@ export default function Dashboard({ library, setLibrary, currentFolderId, setCur
 
   const confirmDeleteNode = () => {
     if (nodeToDelete) {
-      setLibrary(deleteNodeFromFolder(nodeToDelete, library));
+      if (nodeToDelete === 'multiple') {
+        setLibrary(deleteNodeFromFolder(selectedNodes, library));
+        setSelectedNodes([]);
+      } else {
+        setLibrary(deleteNodeFromFolder(nodeToDelete, library));
+      }
       setNodeToDelete(null);
     }
   };
@@ -196,7 +252,7 @@ export default function Dashboard({ library, setLibrary, currentFolderId, setCur
   const handleDrop = async (e) => {
     e.preventDefault();
     setIsDragging(false);
-    const droppedFiles = Array.from(e.dataTransfer.files).map(f => f.path).filter(Boolean);
+    const droppedFiles = Array.from(e.dataTransfer.files).map(f => window.api.getFilePath(f)).filter(Boolean);
     if (droppedFiles.length === 0) return;
 
     const newNodes = await Promise.all(droppedFiles.map(async filePath => {
@@ -243,12 +299,19 @@ export default function Dashboard({ library, setLibrary, currentFolderId, setCur
         position: 'relative'
       }}
       onDrop={handleDrop} 
+      onDragEnter={e => {
+        e.preventDefault();
+        e.stopPropagation();
+        setIsDragging(true);
+      }}
       onDragOver={e => {
         e.preventDefault();
+        e.stopPropagation();
         setIsDragging(true);
       }}
       onDragLeave={e => {
         e.preventDefault();
+        e.stopPropagation();
         setIsDragging(false);
       }}
     >
@@ -462,6 +525,21 @@ export default function Dashboard({ library, setLibrary, currentFolderId, setCur
         </div>
       </div>
 
+      {selectedNodes.length > 0 && (
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(59, 130, 246, 0.1)', border: '1px solid var(--accent-color)', borderRadius: '12px', padding: '12px 24px', marginBottom: '24px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            <span style={{ fontWeight: 600, color: 'var(--accent-color)' }}>{selectedNodes.length} item(s) selected</span>
+            <button onClick={() => setSelectedNodes([])} style={{ background: 'transparent', border: '1px solid var(--accent-color)', color: 'var(--accent-color)', padding: '4px 12px', borderRadius: '16px', cursor: 'pointer', fontSize: '13px', fontWeight: 600 }}>Clear Selection</button>
+            <button onClick={() => setSelectedNodes(allCurrentItems.map(item => item.id))} style={{ background: 'var(--accent-color)', border: 'none', color: '#fff', padding: '4px 12px', borderRadius: '16px', cursor: 'pointer', fontSize: '13px', fontWeight: 600 }}>Select All</button>
+          </div>
+          <div style={{ display: 'flex', gap: '12px' }}>
+            <button onClick={() => setNodeToDelete('multiple')} style={{ display: 'flex', alignItems: 'center', gap: '6px', background: '#EF4444', color: 'white', border: 'none', padding: '8px 16px', borderRadius: '8px', cursor: 'pointer', fontWeight: 600 }}>
+              <Trash2 size={16} /> Delete Selected
+            </button>
+          </div>
+        </div>
+      )}
+
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '32px', color: 'var(--text-muted)', fontSize: '15px', fontWeight: 600 }}>
         {breadcrumbs.map((bc, idx) => (
           <React.Fragment key={idx}>
@@ -491,7 +569,7 @@ export default function Dashboard({ library, setLibrary, currentFolderId, setCur
                   return (
                   <div 
                     key={file.id} 
-                    onClick={() => setActiveFile(file.path)}
+                    onClick={() => setActiveFile(file)}
                     style={{
                       background: 'var(--surface-color)',
                       padding: '20px',
@@ -529,15 +607,15 @@ export default function Dashboard({ library, setLibrary, currentFolderId, setCur
           <div style={{ marginBottom: '40px' }}>
             <h2 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '20px', color: 'var(--text-main)' }}>Folders</h2>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '24px' }}>
-              {folders.map(folder => (
+              {folders.map((folder, index) => (
                 <div 
                   key={folder.id} 
-                  onClick={() => setCurrentFolderId(folder.id)}
+                  onClick={(e) => handleNodeClick(e, folder, index)}
                   style={{
                     background: 'var(--surface-color)',
                     padding: '24px',
                     borderRadius: '16px',
-                    boxShadow: 'var(--shadow-md)',
+                    boxShadow: selectedNodes.includes(folder.id) ? '0 0 0 2px var(--accent-color)' : 'var(--shadow-md)',
                     cursor: 'pointer',
                     display: 'flex',
                     flexDirection: 'column',
@@ -611,17 +689,21 @@ export default function Dashboard({ library, setLibrary, currentFolderId, setCur
           <div>
             <h2 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '20px', color: 'var(--text-main)' }}>Files</h2>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '24px' }}>
-              {files.map(file => {
+              {files.map((file, index) => {
                 const { Icon, color } = getFileIconInfo(file.name);
+                const globalIndex = folders.length + index;
                 return (
                 <div 
                   key={file.id} 
-                  onClick={() => setActiveFile(file)}
+                  onClick={(e) => {
+                    if (file.missing) return;
+                    handleNodeClick(e, file, globalIndex);
+                  }}
                   style={{
                     background: 'var(--surface-color)',
                     padding: '24px',
                     borderRadius: '16px',
-                    boxShadow: 'var(--shadow-md)',
+                    boxShadow: selectedNodes.includes(file.id) ? '0 0 0 2px var(--accent-color)' : 'var(--shadow-md)',
                     cursor: file.missing ? 'not-allowed' : 'pointer',
                     display: 'flex',
                     flexDirection: 'column',

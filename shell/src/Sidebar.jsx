@@ -1,8 +1,53 @@
 import React, { useState, useEffect } from 'react';
-import { ChevronRight, ChevronDown, Folder as FolderIcon, File as FileIcon, Search } from 'lucide-react';
+import { ChevronRight, ChevronDown, Folder as FolderIcon, File as FileIcon, Search, Edit2, Trash2 } from 'lucide-react';
 
-export default function Sidebar({ library, activeFile, setActiveFile, themeStyle }) {
+export default function Sidebar({ library, setLibrary, activeFile, setActiveFile, themeStyle }) {
   const [expanded, setExpanded] = useState({});
+  const [editingNodeId, setEditingNodeId] = useState(null);
+  const [editingName, setEditingName] = useState('');
+  const [nodeToDelete, setNodeToDelete] = useState(null);
+
+  const renameNodeInFolder = (nodeId, newName, currentList) => {
+    return currentList.map(n => {
+      if (n.id === nodeId) {
+        return { ...n, name: newName };
+      }
+      if (n.type === 'folder' && n.children) {
+        return { ...n, children: renameNodeInFolder(nodeId, newName, n.children) };
+      }
+      return n;
+    });
+  };
+
+  const handleRenameSubmit = (e, nodeId) => {
+    e.stopPropagation();
+    e.preventDefault();
+    if (editingName.trim() && setLibrary) {
+      setLibrary(renameNodeInFolder(nodeId, editingName.trim(), library));
+    }
+    setEditingNodeId(null);
+  };
+
+  const deleteNodeFromFolder = (nodeId, currentList) => {
+    return currentList
+      .filter(n => n.id !== nodeId)
+      .map(n => {
+        if (n.type === 'folder' && n.children) {
+          return { ...n, children: deleteNodeFromFolder(nodeId, n.children) };
+        }
+        return n;
+      });
+  };
+
+  const confirmDeleteNode = () => {
+    if (nodeToDelete && setLibrary) {
+      setLibrary(deleteNodeFromFolder(nodeToDelete, library));
+      setNodeToDelete(null);
+      if (activeFile && activeFile.id === nodeToDelete) {
+        setActiveFile(null);
+      }
+    }
+  };
 
   // Auto-expand folders when a file is selected
   useEffect(() => {
@@ -65,9 +110,13 @@ export default function Sidebar({ library, activeFile, setActiveFile, themeStyle
             }}
             onMouseEnter={e => {
               if (!isActive && !node.missing) e.currentTarget.style.background = 'var(--hover-color)';
+              const actions = e.currentTarget.querySelector('.sidebar-actions');
+              if (actions) actions.style.opacity = '1';
             }}
             onMouseLeave={e => {
               if (!isActive) e.currentTarget.style.background = 'transparent';
+              const actions = e.currentTarget.querySelector('.sidebar-actions');
+              if (actions) actions.style.opacity = '0';
             }}
           >
             <span style={{ width: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', marginRight: '6px' }}>
@@ -101,9 +150,39 @@ export default function Sidebar({ library, activeFile, setActiveFile, themeStyle
                 )
               )}
             </span>
-            <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', textDecoration: node.missing ? 'line-through' : 'none' }}>
-              {node.name}
-            </span>
+            {editingNodeId === node.id ? (
+              <form onSubmit={e => handleRenameSubmit(e, node.id)} style={{ display: 'flex', width: '100%', gap: '4px', marginLeft: '4px' }}>
+                <input 
+                  autoFocus
+                  value={editingName} 
+                  onChange={e => setEditingName(e.target.value)} 
+                  onClick={e => e.stopPropagation()}
+                  style={{ width: '100%', padding: '2px 4px', fontSize: '13px', borderRadius: '4px', border: '1px solid var(--accent-color)', outline: 'none', background: 'var(--surface-color)', color: 'var(--text-main)' }}
+                />
+              </form>
+            ) : (
+              <>
+                <span style={{ flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', textDecoration: node.missing ? 'line-through' : 'none' }}>
+                  {node.name}
+                </span>
+                <div className="sidebar-actions" style={{ display: 'flex', gap: '4px', opacity: 0, transition: 'opacity 0.2s', marginLeft: 'auto' }}>
+                  <div 
+                    onClick={e => { e.stopPropagation(); setEditingNodeId(node.id); setEditingName(node.name); }}
+                    style={{ cursor: 'pointer', opacity: 0.5, padding: '2px' }}
+                    title="Rename"
+                  >
+                    <Edit2 size={12} />
+                  </div>
+                  <div 
+                    onClick={e => { e.stopPropagation(); setNodeToDelete(node.id); }}
+                    style={{ cursor: 'pointer', opacity: 0.7, padding: '2px', color: '#EF4444' }}
+                    title="Delete"
+                  >
+                    <Trash2 size={12} />
+                  </div>
+                </div>
+              </>
+            )}
           </div>
           {isFolder && isExpanded && node.children && renderTree(node.children, depth + 1)}
         </div>
@@ -141,6 +220,21 @@ export default function Sidebar({ library, activeFile, setActiveFile, themeStyle
       <div style={{ flex: 1, overflowY: 'auto', padding: '8px 0' }}>
         {renderTree(library)}
       </div>
+
+      {nodeToDelete && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+          <div style={{ background: 'var(--surface-color)', padding: '24px', borderRadius: '12px', width: '320px', boxShadow: 'var(--shadow-lg)' }}>
+            <h3 style={{ margin: '0 0 16px 0', color: 'var(--text-main)' }}>Delete Item?</h3>
+            <p style={{ margin: '0 0 24px 0', color: 'var(--text-muted)', fontSize: '14px', lineHeight: 1.5 }}>
+              Are you sure you want to remove this item from the library? This action cannot be undone.
+            </p>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+              <button onClick={() => setNodeToDelete(null)} style={{ padding: '6px 12px', background: 'transparent', border: 'none', cursor: 'pointer', fontWeight: 600, color: 'var(--text-muted)' }}>Cancel</button>
+              <button onClick={confirmDeleteNode} style={{ padding: '6px 16px', background: '#EF4444', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 600 }}>Delete</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
