@@ -72,7 +72,10 @@ app.whenReady().then(() => {
     try {
       const mm = await import('music-metadata');
       const files = await fs.promises.readdir(musicDir);
-      const validFiles = files.filter(f => f.endsWith('.mp3') || f.endsWith('.wav') || f.endsWith('.ogg'));
+      const validFiles = files.filter(f => {
+        const ext = f.toLowerCase();
+        return ext.endsWith('.mp3') || ext.endsWith('.wav') || ext.endsWith('.ogg') || ext.endsWith('.m4a') || ext.endsWith('.flac') || ext.endsWith('.aac');
+      });
       
       const results = [];
       for (const f of validFiles) {
@@ -103,7 +106,7 @@ app.whenReady().then(() => {
   ipcMain.handle('music:upload', async () => {
     const result = await dialog.showOpenDialog({
       properties: ['openFile', 'multiSelections'],
-      filters: [{ name: 'Audio Files', extensions: ['mp3', 'wav', 'ogg'] }]
+      filters: [{ name: 'Audio Files', extensions: ['mp3', 'wav', 'ogg', 'm4a', 'flac', 'aac'] }]
     });
     if (result.canceled) return [];
     

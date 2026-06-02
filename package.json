@@ -1,6 +1,6 @@
 {
 	"name": "3d-viewer",
-	"version": "2.0.0",
+	"version": "2.0.1",
 	"description": "Online 3D Viewer",
 	"author": "Bharath <bharath@example.com>",
 	"license": "MIT",
@@ -39,7 +39,7 @@
 	],
 	"scripts": {
 		"electron": "electron .",
-		"dist": "electron-builder --win --x64",
+		"dist": "electron-builder --win --linux",
 		"start": "npm run build_website_dev && http-server",
 		"test": "mocha test",
 		"lint": "eslint source",
@@ -145,6 +145,7 @@
 			"icon": "assets/icon.ico"
 		},
 		"linux": {
+			"target": ["deb", "AppImage"],
 			"icon": "assets/icon.png"
 		},
 		"files": [

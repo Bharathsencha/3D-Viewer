@@ -413,3 +413,64 @@ button {
   border: 1px solid #000000 !important;
   background: #ffffff !important;
 }
+
+/* ==============================
+   Hover/Selection Colors
+   ============================== */
+:root { --hover-color: #EDF2F7; }
+:root.dark { --hover-color: #3f3f46; }
+:root.theme-cartoon { --hover-color: #fce4ec; }
+:root.dark.theme-cartoon { --hover-color: #4527a0; }
+:root.theme-barbie { --hover-color: rgba(0, 176, 255, 0.15); }
+:root.theme-gta { --hover-color: rgba(255, 0, 160, 0.2); }
+:root.theme-gta.gta-san_andreas { --hover-color: rgba(252, 163, 17, 0.2); }
+:root.theme-gta.gta-gta4 { --hover-color: rgba(140, 115, 85, 0.2); }
+:root.theme-gta.gta-gta5 { --hover-color: rgba(85, 166, 48, 0.2); }
+:root.theme-ghibli { --hover-color: rgba(76, 175, 80, 0.15); }
+:root.dark.theme-ghibli { --hover-color: rgba(251, 140, 0, 0.15); }
+:root.theme-retro { --hover-color: rgba(255, 0, 255, 0.15); }
+:root.theme-95 { --hover-color: #000080; --selected-text: #ffffff; }
+
+/* ==============================
+   Custom Theme Cursors
+   ============================== */
+
+/* Cartoon - bubbly pink dot */
+:root.theme-cartoon body {
+  cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20'%3E%3Ccircle cx='10' cy='10' r='6' fill='%23ff4081' stroke='%23000' stroke-width='3'/%3E%3Ccircle cx='7' cy='7' r='2' fill='white'/%3E%3C/svg%3E") 10 10, pointer;
+}
+
+/* Barbie - pink sparkle dot */
+:root.theme-barbie body {
+  cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20'%3E%3Ccircle cx='10' cy='10' r='5' fill='%23ff69b4' stroke='%23e91e63' stroke-width='2'/%3E%3Ccircle cx='7' cy='7' r='2' fill='white' opacity='0.8'/%3E%3C/svg%3E") 10 10, pointer;
+}
+
+/* GTA Vice City - neon pink/cyan crosshair */
+:root.theme-gta.gta-vice_city body {
+  cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24'%3E%3Cline x1='12' y1='1' x2='12' y2='8' stroke='%23ff00a0' stroke-width='2'/%3E%3Cline x1='12' y1='16' x2='12' y2='23' stroke='%23ff00a0' stroke-width='2'/%3E%3Cline x1='1' y1='12' x2='8' y2='12' stroke='%23ff00a0' stroke-width='2'/%3E%3Cline x1='16' y1='12' x2='23' y2='12' stroke='%23ff00a0' stroke-width='2'/%3E%3Ccircle cx='12' cy='12' r='3' fill='none' stroke='%2300ffff' stroke-width='1.5'/%3E%3C/svg%3E") 12 12, crosshair;
+}
+
+/* GTA San Andreas - orange/gold crosshair */
+:root.theme-gta.gta-san_andreas body {
+  cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24'%3E%3Cline x1='12' y1='1' x2='12' y2='8' stroke='%23fca311' stroke-width='2'/%3E%3Cline x1='12' y1='16' x2='12' y2='23' stroke='%23fca311' stroke-width='2'/%3E%3Cline x1='1' y1='12' x2='8' y2='12' stroke='%23fca311' stroke-width='2'/%3E%3Cline x1='16' y1='12' x2='23' y2='12' stroke='%23fca311' stroke-width='2'/%3E%3Ccircle cx='12' cy='12' r='3' fill='none' stroke='%23ffffff' stroke-width='1.5'/%3E%3C/svg%3E") 12 12, crosshair;
+}
+
+/* GTA IV - gritty brown crosshair */
+:root.theme-gta.gta-gta4 body {
+  cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24'%3E%3Cline x1='12' y1='1' x2='12' y2='8' stroke='%238c7355' stroke-width='2'/%3E%3Cline x1='12' y1='16' x2='12' y2='23' stroke='%238c7355' stroke-width='2'/%3E%3Cline x1='1' y1='12' x2='8' y2='12' stroke='%238c7355' stroke-width='2'/%3E%3Cline x1='16' y1='12' x2='23' y2='12' stroke='%238c7355' stroke-width='2'/%3E%3Ccircle cx='12' cy='12' r='3' fill='none' stroke='%23f0f0f0' stroke-width='1.5'/%3E%3C/svg%3E") 12 12, crosshair;
+}
+
+/* GTA V - green neon crosshair */
+:root.theme-gta.gta-gta5 body {
+  cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24'%3E%3Cline x1='12' y1='1' x2='12' y2='8' stroke='%2355a630' stroke-width='2'/%3E%3Cline x1='12' y1='16' x2='12' y2='23' stroke='%2355a630' stroke-width='2'/%3E%3Cline x1='1' y1='12' x2='8' y2='12' stroke='%2355a630' stroke-width='2'/%3E%3Cline x1='16' y1='12' x2='23' y2='12' stroke='%2355a630' stroke-width='2'/%3E%3Ccircle cx='12' cy='12' r='3' fill='none' stroke='%23ffffff' stroke-width='1.5'/%3E%3C/svg%3E") 12 12, crosshair;
+}
+
+/* Ghibli - soft green nature dot */
+:root.theme-ghibli body {
+  cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20'%3E%3Ccircle cx='10' cy='10' r='6' fill='%234caf50' opacity='0.3'/%3E%3Ccircle cx='10' cy='10' r='3' fill='%234caf50'/%3E%3C/svg%3E") 10 10, default;
+}
+
+/* Retro - neon magenta/cyan crosshair */
+:root.theme-retro body {
+  cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24'%3E%3Cline x1='12' y1='1' x2='12' y2='8' stroke='%23ff00ff' stroke-width='2'/%3E%3Cline x1='12' y1='16' x2='12' y2='23' stroke='%23ff00ff' stroke-width='2'/%3E%3Cline x1='1' y1='12' x2='8' y2='12' stroke='%23ff00ff' stroke-width='2'/%3E%3Cline x1='16' y1='12' x2='23' y2='12' stroke='%23ff00ff' stroke-width='2'/%3E%3Ccircle cx='12' cy='12' r='3' fill='none' stroke='%2300ffff' stroke-width='1.5'/%3E%3C/svg%3E") 12 12, crosshair;
+}

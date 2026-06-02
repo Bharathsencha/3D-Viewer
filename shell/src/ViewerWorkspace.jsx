@@ -299,28 +299,100 @@ export default function ViewerWorkspace({ library, setLibrary, activeFile, setAc
               .ov_toolbar_separator { background: #e91e63 !important; width: 3px !important; }
             `;
           } else if (themeStyle === 'gta') {
-            toolbarCSS += `
-              .toolbar {
-                background: rgba(13, 1, 33, 0.9) !important;
-                border: 2px solid ${border} !important;
-                border-radius: 4px !important;
-                box-shadow: 0 0 20px ${border}, inset 0 0 10px rgba(0,0,0,0.5) !important;
-              }
-              .ov_toolbar_button {
-                border-radius: 2px !important;
-                fill: ${text} !important;
-                color: ${text} !important;
-              }
-              .ov_toolbar_button:hover, .ov_toolbar_button.selected {
-                background: ${accent} !important;
-                fill: #fff !important;
-                color: #fff !important;
-                box-shadow: 0 0 8px ${accent} !important;
-              }
-              .ov_toolbar svg { stroke: ${text} !important; }
-              .ov_toolbar_button:hover svg { stroke: #fff !important; }
-              .ov_toolbar_separator { background: ${border} !important; box-shadow: 0 0 4px ${border} !important; }
-            `;
+            // GTA sub-theme specific toolbars
+            if (gtaTheme === 'san_andreas') {
+              toolbarCSS += `
+                .toolbar {
+                  background: rgba(59, 42, 26, 0.92) !important;
+                  border: 2px solid #fca311 !important;
+                  border-radius: 4px !important;
+                  box-shadow: 0 0 15px rgba(252, 163, 17, 0.4), inset 0 0 10px rgba(0,0,0,0.5) !important;
+                }
+                .ov_toolbar_button {
+                  border-radius: 2px !important;
+                  fill: #ffffff !important;
+                  color: #ffffff !important;
+                }
+                .ov_toolbar_button:hover, .ov_toolbar_button.selected {
+                  background: #fca311 !important;
+                  fill: #000 !important;
+                  color: #000 !important;
+                  box-shadow: 0 0 8px #fca311 !important;
+                }
+                .ov_toolbar svg { stroke: #ffffff !important; }
+                .ov_toolbar_button:hover svg { stroke: #000 !important; }
+                .ov_toolbar_separator { background: #fca311 !important; box-shadow: 0 0 4px rgba(252, 163, 17, 0.5) !important; }
+              `;
+            } else if (gtaTheme === 'gta4') {
+              toolbarCSS += `
+                .toolbar {
+                  background: rgba(26, 26, 26, 0.92) !important;
+                  border: 1px solid #8c7355 !important;
+                  border-radius: 2px !important;
+                  box-shadow: 0 4px 20px rgba(0,0,0,0.6) !important;
+                }
+                .ov_toolbar_button {
+                  border-radius: 2px !important;
+                  fill: #c0c0c0 !important;
+                  color: #c0c0c0 !important;
+                }
+                .ov_toolbar_button:hover, .ov_toolbar_button.selected {
+                  background: #8c7355 !important;
+                  fill: #fff !important;
+                  color: #fff !important;
+                }
+                .ov_toolbar svg { stroke: #c0c0c0 !important; }
+                .ov_toolbar_button:hover svg { stroke: #fff !important; }
+                .ov_toolbar_separator { background: #5a4a3a !important; }
+              `;
+            } else if (gtaTheme === 'gta5') {
+              toolbarCSS += `
+                .toolbar {
+                  background: rgba(0, 30, 20, 0.92) !important;
+                  border: 2px solid #55a630 !important;
+                  border-radius: 4px !important;
+                  box-shadow: 0 0 20px rgba(85, 166, 48, 0.4), inset 0 0 10px rgba(0,0,0,0.5) !important;
+                }
+                .ov_toolbar_button {
+                  border-radius: 2px !important;
+                  fill: #ffffff !important;
+                  color: #ffffff !important;
+                }
+                .ov_toolbar_button:hover, .ov_toolbar_button.selected {
+                  background: #55a630 !important;
+                  fill: #fff !important;
+                  color: #fff !important;
+                  box-shadow: 0 0 8px #55a630 !important;
+                }
+                .ov_toolbar svg { stroke: #ffffff !important; }
+                .ov_toolbar_button:hover svg { stroke: #fff !important; }
+                .ov_toolbar_separator { background: #55a630 !important; box-shadow: 0 0 4px rgba(85, 166, 48, 0.5) !important; }
+              `;
+            } else {
+              // Vice City (default)
+              toolbarCSS += `
+                .toolbar {
+                  background: rgba(13, 1, 33, 0.92) !important;
+                  border: 2px solid #ff00a0 !important;
+                  border-radius: 4px !important;
+                  box-shadow: 0 0 20px rgba(255, 0, 160, 0.5), inset 0 0 10px rgba(0,0,0,0.5) !important;
+                }
+                .ov_toolbar_button {
+                  border-radius: 2px !important;
+                  fill: #00ffff !important;
+                  color: #00ffff !important;
+                }
+                .ov_toolbar_button:hover, .ov_toolbar_button.selected {
+                  background: #ff00a0 !important;
+                  fill: #fff !important;
+                  color: #fff !important;
+                  box-shadow: 0 0 8px #ff00a0 !important;
+                }
+                .ov_toolbar svg { stroke: #00ffff !important; }
+                .ov_toolbar_button:hover svg { stroke: #fff !important; }
+                .ov_toolbar_separator { background: #ff00a0 !important; box-shadow: 0 0 4px rgba(255, 0, 160, 0.5) !important; }
+              `;
+            }
           } else if (themeStyle === 'ghibli') {
             toolbarCSS += `
               .toolbar {
@@ -418,7 +490,7 @@ export default function ViewerWorkspace({ library, setLibrary, activeFile, setAc
         }
       } catch (err) {}
     }
-  }, [isDarkMode, themeStyle, activeFile]);
+  }, [isDarkMode, themeStyle, activeFile, gtaTheme]);
 
   // Use the file path as the hash URL for the viewer
   const iframeSrc = activeFile 
