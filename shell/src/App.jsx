@@ -74,6 +74,7 @@ export default function App() {
           library={library}
           setLibrary={setLibrary}
           activeFile={activeFile} 
+          setActiveFile={setActiveFile}
           onBack={navigateToDashboard}
           isDarkMode={isDarkMode}
           setIsDarkMode={setIsDarkMode}
