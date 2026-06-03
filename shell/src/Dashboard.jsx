@@ -3,8 +3,11 @@ import { Folder, File, ChevronRight, Home, Plus, Upload, Sun, Moon, Cat, Brush, 
 import Fuse from 'fuse.js';
 import MusicPlayer from './MusicPlayer';
 import ThemeDropdown from './ThemeDropdown';
+import hammerSickleSvg from '../../assets/images/hammer_and_sickle.svg';
+import spiderSvg from '../../assets/images/spider.svg';
+import ussrFlagImg from '../../assets/images/ussr_flag.jpg';
 
-export default function Dashboard({ library, setLibrary, currentFolderId, setCurrentFolderId, setActiveFile, isDarkMode, setIsDarkMode, themeStyle, setThemeStyle, gtaTheme, setGtaTheme }) {
+export default function Dashboard({ library, setLibrary, currentFolderId, setCurrentFolderId, setActiveFile, isDarkMode, setIsDarkMode, themeStyle, setThemeStyle, gtaTheme, setGtaTheme, isCommunistSpedUp, setIsCommunistSpedUp, isMilesMorales, setIsMilesMorales, isSpiderVerse, setIsSpiderVerse, isUssrTheme, setIsUssrTheme, isUssrAlt, setIsUssrAlt }) {
   const [showPrompt, setShowPrompt] = useState(false);
   const [newFolderName, setNewFolderName] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
@@ -330,7 +333,7 @@ export default function Dashboard({ library, setLibrary, currentFolderId, setCur
           <h2 style={{ fontSize: '32px', color: 'var(--accent-color)', fontWeight: 'bold' }}>Drop Files to Upload</h2>
         </div>
       )}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px', position: 'relative', zIndex: 50 }}>
         <h1 style={{ 
           margin: 0, 
           fontSize: '36px', 
@@ -371,6 +374,37 @@ export default function Dashboard({ library, setLibrary, currentFolderId, setCur
             </div>
           )}
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'var(--surface-color)', padding: '4px', borderRadius: '12px', border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-sm)' }}>
+            {themeStyle === 'communist' && (
+              <button
+                onClick={() => {
+                  if (!isUssrTheme) {
+                    setIsUssrTheme(true);
+                    setIsUssrAlt(false);
+                  } else if (!isUssrAlt) {
+                    setIsUssrAlt(true);
+                  } else {
+                    setIsUssrTheme(false);
+                    setIsUssrAlt(false);
+                  }
+                }}
+                style={{
+                  background: 'transparent',
+                  border: '1px solid var(--border-color)',
+                  borderRadius: '4px',
+                  padding: '2px',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  opacity: isUssrTheme ? 1 : 0.6,
+                  transition: 'opacity 0.2s',
+                  marginLeft: '4px'
+                }}
+                title="Toggle USSR Easter Egg"
+              >
+                <img src={ussrFlagImg} alt="USSR Flag" width="24" height="16" style={{ borderRadius: '2px' }} />
+              </button>
+            )}
             <ThemeDropdown themeStyle={themeStyle} setThemeStyle={setThemeStyle} />
             
             {themeStyle === 'gta' ? (
@@ -397,7 +431,15 @@ export default function Dashboard({ library, setLibrary, currentFolderId, setCur
               </div>
             ) : (
               <button
-                onClick={() => setIsDarkMode(!isDarkMode)}
+                onClick={() => {
+                  if (themeStyle === 'communist') {
+                    setIsCommunistSpedUp(!isCommunistSpedUp);
+                  } else if (themeStyle === 'spiderman') {
+                    setIsMilesMorales(!isMilesMorales);
+                  } else {
+                    setIsDarkMode(!isDarkMode);
+                  }
+                }}
                 style={{
                   background: 'transparent',
                   border: 'none',
@@ -408,9 +450,24 @@ export default function Dashboard({ library, setLibrary, currentFolderId, setCur
                   justifyContent: 'center',
                   padding: '4px'
                 }}
-                title="Toggle Theme"
+                title={themeStyle === 'communist' ? "Toggle Communist Mode" : "Toggle Theme"}
               >
-                {themeStyle === 'ghibli' ? (
+                {themeStyle === 'communist' ? (
+                  <img 
+                    key={isCommunistSpedUp ? 'spedup' : 'normal'}
+                    src={hammerSickleSvg} 
+                    alt="Hammer and Sickle"
+                    width="24" height="24"
+                    className="spin-once"
+                  />
+                ) : themeStyle === 'spiderman' ? (
+                  <img 
+                    key={isMilesMorales ? 'miles' : 'peter'}
+                    src={spiderSvg} 
+                    alt="Spider"
+                    width="24" height="24"
+                  />
+                ) : themeStyle === 'ghibli' ? (
                   isDarkMode ? <Brush size={20} /> : <Cat size={20} />
                 ) : (
                   isDarkMode ? <Sun size={20} /> : <Moon size={20} />
@@ -418,7 +475,7 @@ export default function Dashboard({ library, setLibrary, currentFolderId, setCur
               </button>
             )}
           </div>
-          <MusicPlayer themeStyle={themeStyle} isDarkMode={isDarkMode} gtaTheme={gtaTheme} />
+          <MusicPlayer themeStyle={themeStyle} isDarkMode={isDarkMode} gtaTheme={gtaTheme} isCommunistSpedUp={isCommunistSpedUp} isUssrTheme={isUssrTheme} isUssrAlt={isUssrAlt} />
           
           <div style={{ display: 'flex', alignItems: 'center', background: 'var(--surface-color)', padding: '4px 12px', borderRadius: '24px', border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-sm)' }}>
             <Search size={18} color="var(--text-muted)" style={{ marginRight: '8px' }} />

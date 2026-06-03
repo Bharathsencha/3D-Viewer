@@ -1,9 +1,9 @@
 {
 	"name": "3d-viewer",
-	"version": "2.0.2",
-	"description": "Online 3D Viewer",
-	"author": "Bharath <bharath@example.com>",
-	"license": "MIT",
+	"version": "2.0.4",
+	"description": "3D Files viewer",
+	"author": "Bharath <bharathsencha@duck.com>",
+	"license": "GPL-3.0",
 	"type": "module",
 	"main": "main.cjs",
 	"repository": "github:kovacsv/Online3DViewer",

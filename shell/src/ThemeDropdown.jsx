@@ -22,7 +22,9 @@ export default function ThemeDropdown({ themeStyle, setThemeStyle }) {
     { value: 'gta', label: 'GTA' },
     { value: 'ghibli', label: 'Ghibli' },
     { value: 'retro', label: 'Retro' },
-    { value: '95', label: 'Windows 95' }
+    { value: '95', label: 'Windows 95' },
+    { value: 'communist', label: 'Communist' },
+    { value: 'spiderman', label: 'Spider-Man' }
   ];
 
   const selectedOption = options.find(o => o.value === themeStyle) || options[0];
@@ -76,7 +78,7 @@ export default function ThemeDropdown({ themeStyle, setThemeStyle }) {
                 borderRadius: '8px',
                 cursor: 'pointer',
                 background: themeStyle === opt.value ? 'var(--accent-color)' : 'transparent',
-                color: themeStyle === opt.value ? '#fff' : 'var(--text-main)',
+                color: themeStyle === opt.value ? 'var(--bg-color)' : 'var(--text-main)',
                 fontSize: '14px',
                 fontWeight: 600
               }}

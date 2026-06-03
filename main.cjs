@@ -58,6 +58,22 @@ app.whenReady().then(() => {
   const ghibli2Dest = path.join(musicDir, 'ghibli2.mp3');
   if (fs.existsSync(ghibli2Source) && !fs.existsSync(ghibli2Dest)) fs.copyFileSync(ghibli2Source, ghibli2Dest);
 
+  const retroSource = path.join(__dirname, 'assets', 'default_music', 'retro.mp3');
+  const retroDest = path.join(musicDir, 'retro.mp3');
+  if (fs.existsSync(retroSource) && !fs.existsSync(retroDest)) fs.copyFileSync(retroSource, retroDest);
+
+  const comm1Source = path.join(__dirname, 'assets', 'default_music', 'red_sun_in_the_sky.mp3');
+  const comm1Dest = path.join(musicDir, 'red_sun_in_the_sky.mp3');
+  if (fs.existsSync(comm1Source) && !fs.existsSync(comm1Dest)) fs.copyFileSync(comm1Source, comm1Dest);
+
+  const comm2Source = path.join(__dirname, 'assets', 'default_music', 'red_sun_in_the_sky_sped_up.mp3');
+  const comm2Dest = path.join(musicDir, 'red_sun_in_the_sky_sped_up.mp3');
+  if (fs.existsSync(comm2Source) && !fs.existsSync(comm2Dest)) fs.copyFileSync(comm2Source, comm2Dest);
+
+  const spiderSource = path.join(__dirname, 'assets', 'default_music', 'sunflower.mp3');
+  const spiderDest = path.join(musicDir, 'sunflower.mp3');
+  if (fs.existsSync(spiderSource) && !fs.existsSync(spiderDest)) fs.copyFileSync(spiderSource, spiderDest);
+
   const saSource = path.join(__dirname, 'assets', 'default_music', 'gta_sa.mp3');
   const saDest = path.join(musicDir, 'gta_sa.mp3');
   if (fs.existsSync(saSource) && !fs.existsSync(saDest)) fs.copyFileSync(saSource, saDest);
@@ -70,9 +86,14 @@ app.whenReady().then(() => {
   const gta5Dest = path.join(musicDir, 'gta5.mp3');
   if (fs.existsSync(gta5Source) && !fs.existsSync(gta5Dest)) fs.copyFileSync(gta5Source, gta5Dest);
 
-  const retroSource = path.join(__dirname, 'assets', 'default_music', 'retro.mp3');
-  const retroDest = path.join(musicDir, 'retro.mp3');
-  if (fs.existsSync(retroSource) && !fs.existsSync(retroDest)) fs.copyFileSync(retroSource, retroDest);
+  const katiouchaSource = path.join(__dirname, 'assets', 'default_music', 'katioucha.mp3');
+  const katiouchaDest = path.join(musicDir, 'katioucha.mp3');
+  if (fs.existsSync(katiouchaSource) && !fs.existsSync(katiouchaDest)) fs.copyFileSync(katiouchaSource, katiouchaDest);
+
+  const redArmySource = path.join(__dirname, 'assets', 'default_music', 'red_army_choir.mp3');
+  const redArmyDest = path.join(musicDir, 'red_army_choir.mp3');
+  if (fs.existsSync(redArmySource) && !fs.existsSync(redArmyDest)) fs.copyFileSync(redArmySource, redArmyDest);
+
   ipcMain.handle('music:list', async () => {
     try {
       const mm = await import('music-metadata');

@@ -5,7 +5,7 @@ const globalAudio = new Audio();
 let globalCurrentSong = null;
 let globalIsPlaying = false;
 
-export default function MusicPlayer({ themeStyle, isDarkMode, gtaTheme }) {
+export default function MusicPlayer({ themeStyle, isDarkMode, gtaTheme, isCommunistSpedUp, isUssrTheme, isUssrAlt }) {
   const [songs, setSongs] = useState([]);
   const [currentSong, setCurrentSong] = useState(globalCurrentSong);
   const [isPlaying, setIsPlaying] = useState(globalIsPlaying);
@@ -40,6 +40,11 @@ export default function MusicPlayer({ themeStyle, isDarkMode, gtaTheme }) {
       const ghibli1Song = songs.find(s => s.name.toLowerCase().includes('ghibli1'));
       const ghibli2Song = songs.find(s => s.name.toLowerCase().includes('ghibli2'));
       const retroSong = songs.find(s => s.name.toLowerCase().includes('retro'));
+      const comm1Song = songs.find(s => s.name.toLowerCase() === 'red_sun_in_the_sky.mp3');
+      const comm2Song = songs.find(s => s.name.toLowerCase() === 'red_sun_in_the_sky_sped_up.mp3');
+      const katiouchaSong = songs.find(s => s.name.toLowerCase() === 'katioucha.mp3');
+      const redArmySong = songs.find(s => s.name.toLowerCase() === 'red_army_choir.mp3');
+      const spiderSong = songs.find(s => s.name.toLowerCase() === 'sunflower.mp3');
       
       if (themeStyle === 'barbie') {
         if (barbieSong && currentSong?.path !== barbieSong.path) {
@@ -75,6 +80,24 @@ export default function MusicPlayer({ themeStyle, isDarkMode, gtaTheme }) {
           audioRef.current.play();
           setIsPlaying(true);
         }
+      } else if (themeStyle === 'communist') {
+        let targetSong = isCommunistSpedUp ? comm2Song : comm1Song;
+        if (isUssrTheme) {
+          targetSong = isUssrAlt ? redArmySong : katiouchaSong;
+        }
+        if (targetSong && currentSong?.path !== targetSong.path) {
+          playSong(targetSong);
+        } else if (targetSong && !isPlaying) {
+          audioRef.current.play();
+          setIsPlaying(true);
+        }
+      } else if (themeStyle === 'spiderman') {
+        if (spiderSong && currentSong?.path !== spiderSong.path) {
+          playSong(spiderSong);
+        } else if (spiderSong && !isPlaying) {
+          audioRef.current.play();
+          setIsPlaying(true);
+        }
       } else {
         // If theme is NOT a specific music theme, and current song is one of the theme songs, pause and clear it
         if (currentSong && (
@@ -85,7 +108,11 @@ export default function MusicPlayer({ themeStyle, isDarkMode, gtaTheme }) {
           currentSong.path === gta5Song?.path || 
           currentSong.path === ghibli1Song?.path || 
           currentSong.path === ghibli2Song?.path ||
-          currentSong.path === retroSong?.path
+          currentSong.path === ghibli2Song?.path ||
+          currentSong.path === retroSong?.path ||
+          currentSong.path === comm1Song?.path ||
+          currentSong.path === comm2Song?.path ||
+          currentSong.path === spiderSong?.path
         )) {
           audioRef.current.pause();
           setIsPlaying(false);
@@ -95,7 +122,7 @@ export default function MusicPlayer({ themeStyle, isDarkMode, gtaTheme }) {
         }
       }
     }
-  }, [themeStyle, isDarkMode, gtaTheme, songs, currentSong]);
+  }, [themeStyle, isDarkMode, gtaTheme, isCommunistSpedUp, isUssrTheme, isUssrAlt, songs, currentSong]);
 
   const fetchSongs = async () => {
     try {
@@ -279,12 +306,12 @@ export default function MusicPlayer({ themeStyle, isDarkMode, gtaTheme }) {
             gap: '4px'
           }}>
             <div style={{ maxHeight: '140px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-              {songs.filter(s => !s.name.toLowerCase().includes('barbie') && !s.name.toLowerCase().includes('vice_city') && !s.name.toLowerCase().includes('gta_sa') && !s.name.toLowerCase().includes('gta4') && !s.name.toLowerCase().includes('gta5') && !s.name.toLowerCase().includes('ghibli') && !s.name.toLowerCase().includes('retro')).length === 0 ? (
+              {songs.filter(s => !s.name.toLowerCase().includes('barbie') && !s.name.toLowerCase().includes('vice_city') && !s.name.toLowerCase().includes('gta_sa') && !s.name.toLowerCase().includes('gta4') && !s.name.toLowerCase().includes('gta5') && !s.name.toLowerCase().includes('ghibli') && !s.name.toLowerCase().includes('retro') && !s.name.toLowerCase().includes('red_sun_in_the_sky') && !s.name.toLowerCase().includes('sunflower')).length === 0 ? (
                 <div style={{ padding: '8px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '14px' }}>
                   No music found
                 </div>
               ) : (
-                songs.filter(s => !s.name.toLowerCase().includes('barbie') && !s.name.toLowerCase().includes('vice_city') && !s.name.toLowerCase().includes('gta_sa') && !s.name.toLowerCase().includes('gta4') && !s.name.toLowerCase().includes('gta5') && !s.name.toLowerCase().includes('ghibli') && !s.name.toLowerCase().includes('retro')).map((song, idx) => (
+                songs.filter(s => !s.name.toLowerCase().includes('barbie') && !s.name.toLowerCase().includes('vice_city') && !s.name.toLowerCase().includes('gta_sa') && !s.name.toLowerCase().includes('gta4') && !s.name.toLowerCase().includes('gta5') && !s.name.toLowerCase().includes('ghibli') && !s.name.toLowerCase().includes('retro') && !s.name.toLowerCase().includes('red_sun_in_the_sky') && !s.name.toLowerCase().includes('sunflower')).map((song, idx) => (
                   <div 
                     key={idx} 
                     onClick={() => playSong(song)}
