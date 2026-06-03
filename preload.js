@@ -2,6 +2,7 @@ const { contextBridge, ipcRenderer, webUtils } = require('electron');
 
 contextBridge.exposeInMainWorld('api', {
   openFiles: () => ipcRenderer.invoke('dialog:openFiles'),
+  importFiles: (filePaths) => ipcRenderer.invoke('models:import', filePaths),
   openFolder: () => ipcRenderer.invoke('dialog:openFolder'),
   readFile: (filePath) => ipcRenderer.invoke('fs:readFile', filePath),
   checkExists: (filePath) => ipcRenderer.invoke('fs:checkExists', filePath),

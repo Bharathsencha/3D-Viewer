@@ -234,7 +234,7 @@ export default function Dashboard({ library, setLibrary, currentFolderId, setCur
         return {
           id: Date.now().toString() + Math.random(),
           type: 'file',
-          name: await window.api.basename(filePath),
+          name: (await window.api.basename(filePath)).replace(/^\d{13}_/, ''),
           path: filePath,
           missing: false,
           size: stats ? stats.size : 0
@@ -255,12 +255,14 @@ export default function Dashboard({ library, setLibrary, currentFolderId, setCur
     const droppedFiles = Array.from(e.dataTransfer.files).map(f => window.api.getFilePath(f)).filter(Boolean);
     if (droppedFiles.length === 0) return;
 
-    const newNodes = await Promise.all(droppedFiles.map(async filePath => {
+    const importedFiles = await window.api.importFiles(droppedFiles);
+
+    const newNodes = await Promise.all(importedFiles.map(async filePath => {
       const stats = await window.api.getFileSize(filePath);
       return {
         id: Date.now().toString() + Math.random(),
         type: 'file',
-        name: filePath.split(/[/\\]/).pop(),
+        name: (await window.api.basename(filePath)).replace(/^\d{13}_/, ''),
         path: filePath,
         missing: false,
         size: stats ? stats.size : 0

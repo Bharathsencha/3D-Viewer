@@ -31,6 +31,11 @@ app.whenReady().then(() => {
     fs.mkdirSync(musicDir, { recursive: true });
   }
 
+  const modelsDir = path.join(app.getPath('userData'), 'models');
+  if (!fs.existsSync(modelsDir)) {
+    fs.mkdirSync(modelsDir, { recursive: true });
+  }
+
   // Copy default Barbie song if it doesn't exist in the music folder
   const defaultSongSource = path.join(__dirname, 'assets', 'default_music', 'barbie.mp3');
   const defaultSongDest = path.join(musicDir, 'barbie.mp3');
@@ -125,7 +130,33 @@ app.whenReady().then(() => {
       properties: ['openFile', 'multiSelections'],
       filters: [{ name: '3D Models', extensions: ['3dm', '3ds', '3mf', 'amf', 'bim', 'brep', 'dae', 'fbx', 'fcstd', 'gltf', 'ifc', 'iges', 'step', 'stl', 'obj', 'off', 'ply', 'wrl', 'glb'] }]
     });
-    return result.canceled ? [] : result.filePaths;
+    if (result.canceled) return [];
+    
+    const copiedPaths = [];
+    for (const filePath of result.filePaths) {
+      const fileName = path.basename(filePath);
+      const uniqueName = Date.now() + '_' + fileName;
+      const destPath = path.join(modelsDir, uniqueName);
+      await fs.promises.copyFile(filePath, destPath);
+      copiedPaths.push(destPath);
+    }
+    return copiedPaths;
+  });
+
+  ipcMain.handle('models:import', async (event, filePaths) => {
+    const copiedPaths = [];
+    for (const filePath of filePaths) {
+      const fileName = path.basename(filePath);
+      const uniqueName = Date.now() + '_' + fileName;
+      const destPath = path.join(modelsDir, uniqueName);
+      try {
+        await fs.promises.copyFile(filePath, destPath);
+        copiedPaths.push(destPath);
+      } catch (err) {
+        console.error('Error copying file:', err);
+      }
+    }
+    return copiedPaths;
   });
 
   ipcMain.handle('dialog:openFolder', async () => {
