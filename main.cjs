@@ -31,9 +31,10 @@ function createWindow() {
   mainWindow.loadFile(path.join(__dirname, 'shell', 'dist', 'index.html'));
 }
 
-app.whenReady().then(() => {
-  const musicDir = path.join(app.getPath('userData'), 'music');
-  if (!fs.existsSync(musicDir)) {
+if (gotTheLock) {
+  app.whenReady().then(() => {
+    const musicDir = path.join(app.getPath('userData'), 'music');
+    if (!fs.existsSync(musicDir)) {
     fs.mkdirSync(musicDir, { recursive: true });
   }
 
@@ -368,6 +369,7 @@ app.whenReady().then(() => {
     }
   });
 });
+}
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
