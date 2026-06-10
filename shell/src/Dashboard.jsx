@@ -4,6 +4,8 @@ import Fuse from 'fuse.js';
 
 import ThemeDropdown from './ThemeDropdown';
 import DuplicateManager from './DuplicateManager';
+import VirtualFileList from './VirtualFileList';
+import VirtualFileGrid from './VirtualFileGrid';
 
 export default function Dashboard({ library, setLibrary, currentFolderId, setCurrentFolderId, setActiveFile, isDarkMode, setIsDarkMode, themeStyle, setThemeStyle, gtaTheme, setGtaTheme, isCommunistSpedUp, setIsCommunistSpedUp, isMilesMorales, setIsMilesMorales, isSpiderVerse, setIsSpiderVerse, isUssrTheme, setIsUssrTheme, isUssrAlt, setIsUssrAlt }) {
   const [showPrompt, setShowPrompt] = useState(false);
@@ -1077,147 +1079,35 @@ export default function Dashboard({ library, setLibrary, currentFolderId, setCur
         )}
 
         {files.length > 0 && (
-          <div>
-            <h2 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '20px', color: 'var(--text-main)' }}>Files</h2>
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+            <h2 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '20px', color: 'var(--text-main)', flexShrink: 0 }}>Files</h2>
             {viewMode === 'list' ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                {files.map((file, index) => {
-                  const { Icon, color } = getFileIconInfo(file.name);
-                  const globalIndex = folders.length + index;
-                  return (
-                    <div 
-                      key={file.id}
-                      onClick={(e) => {
-                        if (file.missing) return;
-                        handleNodeClick(e, file, globalIndex);
-                      }}
-                      style={{
-                        display: 'flex', alignItems: 'center', gap: '16px', padding: '12px 16px',
-                        borderRadius: '8px', cursor: file.missing ? 'not-allowed' : 'pointer',
-                        background: selectedNodes.includes(file.id) ? 'var(--accent-color)' : 'var(--surface-color)',
-                        color: selectedNodes.includes(file.id) ? '#fff' : 'var(--text-main)',
-                        border: selectedNodes.includes(file.id) ? '2px solid var(--accent-color)' : '2px solid transparent',
-                        opacity: file.missing ? 0.6 : 1,
-                      }}
-                    >
-                      <Icon size={20} color={selectedNodes.includes(file.id) ? '#fff' : color} />
-                      <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{file.name}</span>
-                      <div 
-                        onClick={(e) => toggleFavorite(e, file.id)}
-                        style={{ cursor: 'pointer', padding: '4px' }}
-                      >
-                        <Star size={16} fill={file.isFavorite ? 'gold' : 'transparent'} color={file.isFavorite ? 'gold' : (selectedNodes.includes(file.id) ? '#fff' : 'var(--text-muted)')} />
-                      </div>
-                      <div style={{ width: '80px', textAlign: 'right', fontSize: '13px', color: selectedNodes.includes(file.id) ? 'rgba(255,255,255,0.8)' : 'var(--text-muted)' }}>
-                        {file.size ? (file.size / 1024 / 1024).toFixed(2) + ' MB' : 'N/A'}
-                      </div>
-                      <div 
-                        onClick={e => handleDelete(e, file.id)}
-                        style={{ cursor: 'pointer', padding: '4px', color: selectedNodes.includes(file.id) ? '#fff' : '#EF4444' }}
-                      >
-                        <Trash2 size={16} />
-                      </div>
-                    </div>
-                  );
-                })}
+              <VirtualFileList 
+                files={files} 
+                selectedNodes={selectedNodes} 
+                handleNodeClick={handleNodeClick} 
+                toggleFavorite={toggleFavorite} 
+                handleDelete={handleDelete} 
+                getFileIconInfo={getFileIconInfo} 
+                foldersLength={folders.length} 
+              />
               </div>
             ) : (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '24px' }}>
-              {files.map((file, index) => {
-                const { Icon, color } = getFileIconInfo(file.name);
-                const globalIndex = folders.length + index;
-                return (
-                <div 
-                  key={file.id} 
-                  onClick={(e) => {
-                    if (file.missing) return;
-                    handleNodeClick(e, file, globalIndex);
-                  }}
-                  style={{
-                    position: 'relative',
-                    background: selectedNodes.includes(file.id) ? 'var(--bg-color)' : 'var(--surface-color)',
-                    padding: '24px',
-                    borderRadius: '16px',
-                    boxShadow: selectedNodes.includes(file.id) ? '0 0 0 3px var(--accent-color)' : 'var(--shadow-md)',
-                    cursor: file.missing ? 'not-allowed' : 'pointer',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '12px',
-                    border: selectedNodes.includes(file.id) ? '1px solid var(--accent-color)' : '1px solid var(--border-color)',
-                    opacity: file.missing ? 0.6 : 1,
-                    transition: 'all 0.2s',
-                  }}
-                  onMouseEnter={e => {
-                    if (file.missing) return;
-                    e.currentTarget.style.transform = 'translateY(-4px)';
-                    e.currentTarget.style.boxShadow = 'var(--shadow-lg)';
-                  }}
-                  onMouseLeave={e => {
-                    if (file.missing) return;
-                    e.currentTarget.style.transform = 'none';
-                    e.currentTarget.style.boxShadow = 'var(--shadow-md)';
-                  }}
-                >
-                  {selectedNodes.includes(file.id) && (
-                    <div style={{ position: 'absolute', top: '12px', right: '12px', background: 'var(--accent-color)', borderRadius: '50%', padding: '4px', color: '#fff', zIndex: 10 }}>
-                      <Check size={16} strokeWidth={3} />
-                    </div>
-                  )}
-                  {themeStyle === 'cartoon' ? (
-                    <svg width="32" height="32" viewBox="0 0 24 24" fill="#ffffff" stroke="var(--border-color)" strokeWidth="2">
-                      <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path>
-                      <polyline points="13 2 13 9 20 9"></polyline>
-                      <circle cx="9" cy="14" r="1.5" fill="#000"></circle>
-                      <circle cx="15" cy="14" r="1.5" fill="#000"></circle>
-                      <path d="M10 17c1.5 1.5 2.5 1.5 4 0" stroke="#000" strokeWidth="1.5" strokeLinecap="round"></path>
-                    </svg>
-                  ) : (
-                    <Icon size={32} color={color} strokeWidth={1.5} />
-                  )}
-                  <div style={{ fontWeight: 600, fontSize: '14px', color: 'var(--text-main)', marginTop: '8px', paddingTop: '12px', borderTop: '2px dashed var(--border-color)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    {editingNodeId === file.id ? (
-                      <form onSubmit={e => handleRenameSubmit(e, file.id)} style={{ display: 'flex', width: '100%', gap: '4px' }}>
-                        <input 
-                          autoFocus
-                          value={editingName} 
-                          onChange={e => setEditingName(e.target.value)} 
-                          onClick={e => e.stopPropagation()}
-                          style={{ width: '100%', padding: '2px 4px', fontSize: '14px', borderRadius: '4px', border: '1px solid var(--accent-color)', outline: 'none' }}
-                        />
-                      </form>
-                    ) : (
-                      <>
-                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{file.name}</span>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                          <div 
-                            onClick={(e) => toggleFavorite(e, file.id)}
-                            style={{ cursor: 'pointer', padding: '4px' }}
-                            title="Favorite"
-                          >
-                            <Star size={14} fill={file.isFavorite ? 'gold' : 'transparent'} color={file.isFavorite ? 'gold' : 'var(--text-muted)'} />
-                          </div>
-                          <div 
-                            onClick={e => { e.stopPropagation(); setEditingNodeId(file.id); setEditingName(file.name); }}
-                            style={{ cursor: 'pointer', opacity: 0.5, padding: '4px' }}
-                            title="Rename"
-                          >
-                            <Edit2 size={14} />
-                          </div>
-                          <div 
-                            onClick={e => handleDelete(e, file.id)}
-                            style={{ cursor: 'pointer', opacity: 0.7, padding: '4px', color: '#EF4444' }}
-                            title="Delete"
-                          >
-                            <Trash2 size={14} />
-                          </div>
-                        </div>
-                      </>
-                    )}
-                  </div>
-                  {file.missing && <div style={{ color: '#EF4444', fontSize: '12px', fontWeight: 500 }}>File missing</div>}
-                </div>
-              )})}
-            </div>
+              <VirtualFileGrid 
+                files={files} 
+                selectedNodes={selectedNodes} 
+                handleNodeClick={handleNodeClick} 
+                toggleFavorite={toggleFavorite} 
+                getFileIconInfo={getFileIconInfo} 
+                themeStyle={themeStyle} 
+                editingNodeId={editingNodeId} 
+                editingName={editingName} 
+                setEditingName={setEditingName} 
+                setEditingNodeId={setEditingNodeId} 
+                handleRenameSubmit={handleRenameSubmit} 
+                foldersLength={folders.length} 
+              />
             )}
           </div>
         )}
