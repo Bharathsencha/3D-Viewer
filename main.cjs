@@ -100,6 +100,13 @@ app.whenReady().then(() => {
       const allFiles = await fs.promises.readdir(modelsDir);
       const targetFiles = allFiles.filter(f => f.toLowerCase().endsWith('.stl') || f.toLowerCase().endsWith('.3dm'));
       const existingHashedFiles = db.getAllHashedFiles();
+      
+      for (const hashedFile of existingHashedFiles) {
+        if (!targetFiles.includes(hashedFile)) {
+          db.deleteHash(hashedFile);
+        }
+      }
+      
       const filesToHash = targetFiles.filter(f => !existingHashedFiles.includes(f));
       
       initialScanTotal = filesToHash.length;
@@ -129,6 +136,17 @@ app.whenReady().then(() => {
   })();
 
   ipcMain.handle('models:getScanStatus', () => ({ finished: initialScanFinished, total: initialScanTotal }));
+
+  ipcMain.handle('models:extractArchive', async (event, filePath) => {
+    try {
+      const { extractArchive } = require('./patch_archive.cjs');
+      const files = await extractArchive(filePath);
+      return files;
+    } catch (err) {
+      console.error('Error extracting archive:', err);
+      return [];
+    }
+  });
 
   ipcMain.handle('models:checkDuplicates', async (event, filePaths) => {
     const duplicates = [];
@@ -184,7 +202,9 @@ app.whenReady().then(() => {
   ipcMain.handle('models:deleteFile', async (event, filePaths) => {
     for (const filePath of filePaths) {
       try {
-        await fs.promises.unlink(filePath);
+        if (fs.existsSync(filePath)) {
+          await fs.promises.unlink(filePath);
+        }
         db.deleteHash(path.basename(filePath));
       } catch (err) {
         console.error('Failed to delete file:', filePath, err);
@@ -277,7 +297,7 @@ app.whenReady().then(() => {
   ipcMain.handle('dialog:openFiles', async () => {
     const result = await dialog.showOpenDialog({
       properties: ['openFile', 'multiSelections'],
-      filters: [{ name: '3D Models', extensions: ['3dm', '3ds', '3mf', 'amf', 'bim', 'brep', 'dae', 'fbx', 'fcstd', 'gltf', 'ifc', 'iges', 'step', 'stl', 'obj', 'off', 'ply', 'wrl', 'glb'] }]
+      filters: [{ name: '3D Models & Archives', extensions: ['3dm', '3ds', '3mf', 'amf', 'bim', 'brep', 'dae', 'fbx', 'fcstd', 'gltf', 'ifc', 'iges', 'step', 'stl', 'obj', 'off', 'ply', 'wrl', 'glb', 'zip', 'rar'] }]
     });
     if (result.canceled) return [];
     

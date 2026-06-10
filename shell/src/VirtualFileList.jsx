@@ -1,8 +1,8 @@
 import React from 'react';
-import * as ReactWindow from 'react-window';
-const { FixedSizeList: List } = ReactWindow;
-import * as AutoSizerWrapper from 'react-virtualized-auto-sizer';
-const AutoSizer = AutoSizerWrapper.default || AutoSizerWrapper;
+import { FixedSizeList as List } from 'react-window';
+
+import AutoSizer from 'react-virtualized-auto-sizer';
+
 import { Trash2, Star } from 'lucide-react';
 
 export default function VirtualFileList({ files, selectedNodes, handleNodeClick, toggleFavorite, handleDelete, getFileIconInfo, foldersLength }) {

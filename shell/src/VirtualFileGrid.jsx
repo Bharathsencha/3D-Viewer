@@ -1,8 +1,8 @@
 import React, { useRef, useState } from 'react';
-import * as ReactWindow from 'react-window';
-const { FixedSizeGrid: Grid } = ReactWindow;
-import * as AutoSizerWrapper from 'react-virtualized-auto-sizer';
-const AutoSizer = AutoSizerWrapper.default || AutoSizerWrapper;
+import { FixedSizeGrid as Grid } from 'react-window';
+
+import AutoSizer from 'react-virtualized-auto-sizer';
+
 import { Check, Edit2, Star } from 'lucide-react';
 
 export default function VirtualFileGrid({ files, selectedNodes, handleNodeClick, toggleFavorite, getFileIconInfo, themeStyle, editingNodeId, editingName, setEditingName, setEditingNodeId, handleRenameSubmit, foldersLength }) {

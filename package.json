@@ -161,6 +161,7 @@
 			"main.cjs",
 			"preload.js",
 			"database.cjs",
+			"patch_archive.cjs",
 			"workers/**/*",
 			"shell/dist/**/*",
 			"build/package/website/**/*",

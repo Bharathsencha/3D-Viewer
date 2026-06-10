@@ -6,6 +6,7 @@ import ThemeDropdown from './ThemeDropdown';
 import DuplicateManager from './DuplicateManager';
 import VirtualFileList from './VirtualFileList';
 import VirtualFileGrid from './VirtualFileGrid';
+import FilterDropdown from './FilterDropdown';
 
 export default function Dashboard({ library, setLibrary, currentFolderId, setCurrentFolderId, setActiveFile, isDarkMode, setIsDarkMode, themeStyle, setThemeStyle, gtaTheme, setGtaTheme, isCommunistSpedUp, setIsCommunistSpedUp, isMilesMorales, setIsMilesMorales, isSpiderVerse, setIsSpiderVerse, isUssrTheme, setIsUssrTheme, isUssrAlt, setIsUssrAlt }) {
   const [showPrompt, setShowPrompt] = useState(false);
@@ -103,12 +104,23 @@ export default function Dashboard({ library, setLibrary, currentFolderId, setCur
 
   const sortNodes = (nodes) => {
     return [...nodes].sort((a, b) => {
+      if (a.type !== b.type) return a.type === 'folder' ? -1 : 1;
+      
+      const getTimestamp = (id) => {
+        const parts = id.toString().split('_');
+        return parseInt(parts[1] || '0', 10);
+      };
+
+      if (sortBy === 'newest' || sortBy === 'oldest') {
+        const aTime = getTimestamp(a.id);
+        const bTime = getTimestamp(b.id);
+        return sortBy === 'oldest' ? aTime - bTime : bTime - aTime;
+      }
       if (sortBy === 'name-asc') return a.name.localeCompare(b.name);
       if (sortBy === 'name-desc') return b.name.localeCompare(a.name);
       if (sortBy === 'size-desc') return (b.size || 0) - (a.size || 0);
       if (sortBy === 'size-asc') return (a.size || 0) - (b.size || 0);
-      if (sortBy === 'oldest') return (parseFloat(a.id) || 0) - (parseFloat(b.id) || 0);
-      return (parseFloat(b.id) || 0) - (parseFloat(a.id) || 0); // newest by default
+      return 0;
     });
   };
 
@@ -243,13 +255,14 @@ export default function Dashboard({ library, setLibrary, currentFolderId, setCur
     if (nodeToDelete) {
       if (nodeToDelete === 'multiple') {
         const pathsToDelete = [];
-        const findPaths = (nodes) => {
+        const findPaths = (nodes, shouldDeleteAll) => {
           for (const node of nodes) {
-            if (selectedNodes.includes(node.id) && node.type === 'file') pathsToDelete.push(node.path);
-            if (node.children) findPaths(node.children);
+            const isSelected = shouldDeleteAll || selectedNodes.includes(node.id);
+            if (isSelected && node.type === 'file') pathsToDelete.push(node.path);
+            if (node.children) findPaths(node.children, isSelected);
           }
         };
-        findPaths(library);
+        findPaths(library, false);
         if (pathsToDelete.length > 0) await window.api.deleteFile(pathsToDelete);
         setLibrary(deleteNodeFromFolder(selectedNodes, library));
         setSelectedNodes([]);
@@ -266,8 +279,14 @@ export default function Dashboard({ library, setLibrary, currentFolderId, setCur
           return null;
         };
         const node = findNode(library, nodeToDelete);
-        if (node && node.type === 'file') {
-          await window.api.deleteFile([node.path]);
+        const pathsToDelete = [];
+        const findPathsSingle = (n) => {
+          if (n.type === 'file') pathsToDelete.push(n.path);
+          if (n.children) n.children.forEach(findPathsSingle);
+        };
+        if (node) findPathsSingle(node);
+        if (pathsToDelete.length > 0) {
+          await window.api.deleteFile(pathsToDelete);
         }
         setLibrary(deleteNodeFromFolder(nodeToDelete, library));
       }
@@ -311,11 +330,59 @@ export default function Dashboard({ library, setLibrary, currentFolderId, setCur
     if (filePaths && filePaths.length > 0) {
       setIsProcessingFiles(true);
       try {
-        const result = await window.api.checkDuplicates(filePaths);
-        if (result.duplicates.length > 0) {
-          setDuplicateData(result);
+        let finalFiles = [];
+        let archiveMappings = {};
+        for (const filePath of filePaths) {
+          const ext = filePath.split('.').pop().toLowerCase();
+          if (ext === 'zip' || ext === 'rar') {
+            const extracted = await window.api.extractArchive(filePath);
+            for (const item of extracted) {
+              finalFiles.push(item.absolutePath);
+              archiveMappings[item.absolutePath] = item.relativePath;
+            }
+          } else {
+            finalFiles.push(filePath);
+          }
+        }
+        if (finalFiles.length === 0) return setIsProcessingFiles(false);
+
+        const result = await window.api.checkDuplicates(finalFiles);
+        
+        const libraryPaths = new Set();
+        const collectPaths = (nodes) => {
+          for (const n of nodes) {
+            if (n.type === 'file') libraryPaths.add(n.path);
+            if (n.children) collectPaths(n.children);
+          }
+        };
+        collectPaths(library || []);
+        
+        const realDuplicates = [];
+        const orphansToDelete = [];
+        for (const dup of result.duplicates) {
+           if (libraryPaths.has(dup.existingPath)) {
+              realDuplicates.push({ ...dup, relativePath: archiveMappings[dup.path] });
+           } else {
+              orphansToDelete.push(dup.existingPath);
+              result.nonDuplicates.push({
+                 original: dup.original,
+                 path: dup.path,
+                 hash: dup.hash,
+                 relativePath: archiveMappings[dup.path]
+              });
+           }
+        }
+        
+        if (orphansToDelete.length > 0) {
+           await window.api.deleteFile(orphansToDelete);
+        }
+        
+        const nonDupsWithPaths = result.nonDuplicates.map(nd => ({ ...nd, relativePath: archiveMappings[nd.path] }));
+
+        if (realDuplicates.length > 0) {
+          setDuplicateData({ duplicates: realDuplicates, nonDuplicates: nonDupsWithPaths });
         } else {
-          await commitAndAddNodes(result.nonDuplicates, false);
+          await commitAndAddNodes(nonDupsWithPaths, false);
         }
       } catch (err) {
         console.error('Failed to process files:', err);
@@ -329,20 +396,64 @@ export default function Dashboard({ library, setLibrary, currentFolderId, setCur
   const commitAndAddNodes = async (files, forceKeep) => {
     try {
       const copiedPaths = await window.api.commitImport(files, forceKeep);
-      const newNodes = copiedPaths.map((newPath, idx) => ({
-        id: 'file_' + Date.now() + '_' + idx,
-        type: 'file',
-        name: newPath.split(/[/\\]/).pop().replace(/^\d{13}_/, ''),
-        path: newPath,
-        missing: false
-      }));
-      let newLib = library;
-      for (const node of newNodes) {
-        newLib = addNodeToFolder(currentFolderId, node, newLib);
+      let newLib = library || [];
+
+      for (let idx = 0; idx < copiedPaths.length; idx++) {
+        const newPath = copiedPaths[idx];
+        const fileObj = files[idx];
+        const relativePath = fileObj.relativePath;
+        
+        let targetFolderId = currentFolderId;
+
+        if (relativePath && relativePath.includes('/')) {
+          const parts = relativePath.split('/');
+          parts.pop(); // remove filename
+          
+          for (const part of parts) {
+            // Find if this folder already exists in the current target
+            const findFolderInTarget = (nodes, targetId, folderName) => {
+              if (!targetId) return nodes.find(n => n.type === 'folder' && n.name === folderName);
+              const target = nodes.find(n => n.id === targetId);
+              if (target && target.children) {
+                 return target.children.find(n => n.type === 'folder' && n.name === folderName);
+              }
+              // deeper search
+              for (const n of nodes) {
+                if (n.type === 'folder' && n.children) {
+                   const found = findFolderInTarget(n.children, targetId, folderName);
+                   if (found) return found;
+                }
+              }
+              return null;
+            };
+
+            let existingFolder = findFolderInTarget(newLib, targetFolderId, part);
+            
+            if (existingFolder) {
+              targetFolderId = existingFolder.id;
+            } else {
+              const newFolderId = 'folder_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+              const newFolder = { id: newFolderId, type: 'folder', name: part, children: [] };
+              newLib = addNodeToFolder(targetFolderId, newFolder, newLib);
+              targetFolderId = newFolderId;
+            }
+          }
+        }
+
+        const newNode = {
+          id: 'file_' + Date.now() + '_' + idx + '_' + Math.random().toString(36).substr(2, 5),
+          type: 'file',
+          name: newPath.split(/[/\\]/).pop().replace(/^\d{13}_/, ''),
+          path: newPath,
+          missing: false
+        };
+        newLib = addNodeToFolder(targetFolderId, newNode, newLib);
       }
+      
       setLibrary(newLib);
     } catch (err) {
       console.error('Failed to commit import:', err);
+      alert('Failed to commit import: ' + err.message);
     }
   };
 
@@ -400,7 +511,19 @@ export default function Dashboard({ library, setLibrary, currentFolderId, setCur
 
     setIsProcessingFiles(true);
     try {
-      const result = await window.api.checkDuplicates(droppedFiles);
+      let finalFiles = [];
+      for (const filePath of droppedFiles) {
+        const ext = filePath.split('.').pop().toLowerCase();
+        if (ext === 'zip' || ext === 'rar') {
+          const extracted = await window.api.extractArchive(filePath);
+          finalFiles.push(...extracted);
+        } else {
+          finalFiles.push(filePath);
+        }
+      }
+      if (finalFiles.length === 0) return setIsProcessingFiles(false);
+
+      const result = await window.api.checkDuplicates(finalFiles);
       if (result.duplicates.length > 0) {
         setDuplicateData(result);
       } else {
@@ -741,19 +864,7 @@ export default function Dashboard({ library, setLibrary, currentFolderId, setCur
             ><Star size={16} /> Favorites</div>
           </div>
 
-          <select 
-            value={filterExt} 
-            onChange={(e) => setFilterExt(e.target.value)}
-            style={{ 
-              padding: '8px 12px', borderRadius: '8px', border: '1px solid var(--border-color)', 
-              background: 'var(--surface-color)', color: 'var(--text-main)', outline: 'none', cursor: 'pointer'
-            }}
-          >
-            <option value="all">All Types</option>
-            <option value="stl">.STL</option>
-            <option value="obj">.OBJ</option>
-            <option value="3dm">.3DM</option>
-          </select>
+          <FilterDropdown filterExt={filterExt} setFilterExt={setFilterExt} />
 
           <div style={{ display: 'flex', background: 'var(--surface-color)', border: '1px solid var(--border-color)', borderRadius: '8px', overflow: 'hidden' }}>
             <div 
@@ -871,7 +982,7 @@ export default function Dashboard({ library, setLibrary, currentFolderId, setCur
         </div>
       </div>
 
-      {selectedNodes.length > 0 && (
+      { (selectedNodes.length > 0 || isMultiSelectMode) && (
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(59, 130, 246, 0.1)', border: '1px solid var(--accent-color)', borderRadius: '12px', padding: '12px 24px', marginBottom: '24px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
             <span style={{ fontWeight: 600, color: 'var(--accent-color)' }}>{selectedNodes.length} item(s) selected</span>
@@ -917,10 +1028,10 @@ export default function Dashboard({ library, setLibrary, currentFolderId, setCur
         )}
       </div>
 
-      <div style={{ flex: 1 }}>
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
         {searchQuery.trim() ? (
-          <div>
-            <h2 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '20px', color: 'var(--text-main)' }}>Search Results</h2>
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+            <h2 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '20px', color: 'var(--text-main)', flexShrink: 0 }}>Search Results</h2>
             {searchResults.length === 0 ? (
               <div style={{ padding: '24px', textAlign: 'center', color: 'var(--text-muted)' }}>
                 No files match your search.
