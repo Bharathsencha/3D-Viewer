@@ -19,13 +19,13 @@ export default function DuplicateManager({ duplicates, isDarkMode, themeStyle, o
   }, []);
 
   useEffect(() => {
-    const handleIframeLoad = () => {
+    const handleIframeLoad = (ref) => {
       try {
-        const doc = iframeRef.current?.contentDocument;
-        const win = iframeRef.current?.contentWindow;
+        const doc = ref.current?.contentDocument;
+        const win = ref.current?.contentWindow;
         
         if (!win || !win.OV || !win.OV.app) {
-          setTimeout(handleIframeLoad, 50);
+          setTimeout(() => handleIframeLoad(ref), 50);
           return;
         }
 
@@ -108,9 +108,12 @@ export default function DuplicateManager({ duplicates, isDarkMode, themeStyle, o
             leftCamera.eye.x !== currentRightCam.eye.x || 
             leftCamera.eye.y !== currentRightCam.eye.y || 
             leftCamera.eye.z !== currentRightCam.eye.z ||
-            leftCamera.center.x !== currentRightCam.center.x
+            leftCamera.center.x !== currentRightCam.center.x ||
+            leftCamera.up.x !== currentRightCam.up.x ||
+            leftCamera.up.y !== currentRightCam.up.y ||
+            leftCamera.up.z !== currentRightCam.up.z
           ) {
-             rightWin.OV.app.viewer.SetCamera(leftCamera);
+             rightWin.OV.app.viewer.SetCamera(leftCamera.Clone());
           }
         }
       } catch (e) {}
