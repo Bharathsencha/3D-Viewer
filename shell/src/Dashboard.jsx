@@ -1,7 +1,7 @@
 import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { Folder, File, ChevronRight, Home, Plus, Upload, Sun, Moon, Cat, Brush, Search, Box, Image, Code, FileBox, Type, Edit2, Trash2, ListFilter, Check } from 'lucide-react';
 import Fuse from 'fuse.js';
-import MusicPlayer from './MusicPlayer';
+
 import ThemeDropdown from './ThemeDropdown';
 import DuplicateManager from './DuplicateManager';
 
@@ -662,7 +662,7 @@ export default function Dashboard({ library, setLibrary, currentFolderId, setCur
               </button>
             )}
           </div>
-          <MusicPlayer themeStyle={themeStyle} isDarkMode={isDarkMode} gtaTheme={gtaTheme} isCommunistSpedUp={isCommunistSpedUp} isUssrTheme={isUssrTheme} isUssrAlt={isUssrAlt} />
+
           
           <div style={{ display: 'flex', alignItems: 'center', background: 'var(--surface-color)', padding: '4px 12px', borderRadius: '24px', border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-sm)' }}>
             <Search size={18} color="var(--text-muted)" style={{ marginRight: '8px' }} />

@@ -1,7 +1,7 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { ArrowLeft, Settings, Folder, File, ChevronRight, Upload, Trash2, Home, Sun, Moon, Cat, Brush, Bug } from 'lucide-react';
 import Sidebar from './Sidebar';
-import MusicPlayer from './MusicPlayer';
+
 import ThemeDropdown from './ThemeDropdown';
 
 export default function ViewerWorkspace({ library, setLibrary, activeFile, setActiveFile, onBack, isDarkMode, setIsDarkMode, themeStyle, setThemeStyle, gtaTheme, setGtaTheme, isCommunistSpedUp, setIsCommunistSpedUp, isMilesMorales, setIsMilesMorales, isUssrTheme, setIsUssrTheme, isUssrAlt, setIsUssrAlt }) {
@@ -654,7 +654,7 @@ export default function ViewerWorkspace({ library, setLibrary, activeFile, setAc
               </button>
             )}
           </div>
-          <MusicPlayer themeStyle={themeStyle} isDarkMode={isDarkMode} gtaTheme={gtaTheme} isCommunistSpedUp={isCommunistSpedUp} />
+
         </div>
       </div>
 
