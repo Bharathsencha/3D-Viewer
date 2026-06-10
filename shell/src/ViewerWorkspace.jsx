@@ -3,9 +3,6 @@ import { ArrowLeft, Settings, Folder, File, ChevronRight, Upload, Trash2, Home, 
 import Sidebar from './Sidebar';
 import MusicPlayer from './MusicPlayer';
 import ThemeDropdown from './ThemeDropdown';
-import hammerSickleSvg from '../../assets/images/hammer_and_sickle.svg';
-import spiderSvg from '../../assets/images/spider.svg';
-import ussrFlagImg from '../../assets/images/ussr_flag.jpg';
 
 export default function ViewerWorkspace({ library, setLibrary, activeFile, setActiveFile, onBack, isDarkMode, setIsDarkMode, themeStyle, setThemeStyle, gtaTheme, setGtaTheme, isCommunistSpedUp, setIsCommunistSpedUp, isMilesMorales, setIsMilesMorales, isUssrTheme, setIsUssrTheme, isUssrAlt, setIsUssrAlt }) {
   const iframeRef = useRef(null);
@@ -518,7 +515,7 @@ export default function ViewerWorkspace({ library, setLibrary, activeFile, setAc
   }, [isDarkMode, themeStyle, activeFile, gtaTheme]);
 
   // Use the file path as the hash URL for the viewer
-  const iframeSrc = activeFile 
+  const iframeSrc = activeFile && activeFile.path
     ? `../../build/package/website/index.html#model=file://${activeFile.path}` 
     : `../../build/package/website/index.html`;
 
@@ -597,7 +594,7 @@ export default function ViewerWorkspace({ library, setLibrary, activeFile, setAc
                 }}
                 title="Toggle USSR Easter Egg"
               >
-                <img src={ussrFlagImg} alt="USSR Flag" width="24" height="16" style={{ borderRadius: '2px' }} />
+                <span style={{ fontSize: '16px' }}>☭</span>
               </button>
             )}
             <ThemeDropdown themeStyle={themeStyle} setThemeStyle={setThemeStyle} />
@@ -647,21 +644,8 @@ export default function ViewerWorkspace({ library, setLibrary, activeFile, setAc
                 }}
                 title={themeStyle === 'communist' ? "Toggle Communist Mode" : "Toggle Theme"}
               >
-                {themeStyle === 'communist' ? (
-                  <img 
-                    key={isCommunistSpedUp ? 'spedup' : 'normal'}
-                    src={hammerSickleSvg} 
-                    alt="Hammer and Sickle"
-                    width="24" height="24"
-                    className="spin-once"
-                  />
-                ) : themeStyle === 'spiderman' ? (
-                  <img 
-                    key={isMilesMorales ? 'miles' : 'peter'}
-                    src={spiderSvg} 
-                    alt="Spider"
-                    width="24" height="24"
-                  />
+                {themeStyle === 'spiderman' ? (
+                  <span style={{ fontSize: '24px' }}>🕷️</span>
                 ) : themeStyle === 'ghibli' ? (
                   isDarkMode ? <Brush size={20} /> : <Cat size={20} />
                 ) : (

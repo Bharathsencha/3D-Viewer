@@ -1,0 +1,46 @@
+
+> 3d-viewer@2.0.7 build_shell
+> cd shell && npm run build
+
+
+> shell@0.0.0 build
+> vite build
+
+vite v8.0.16 building client environment for production...
+[2Ktransforming...✓ 1745 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                   0.71 kB │ gzip:  0.39 kB
+dist/assets/index-D_dYKDvz.css    2.63 kB │ gzip:  0.98 kB
+dist/assets/index-CeFFW8f5.js   258.40 kB │ gzip: 74.60 kB
+
+✓ built in 165ms
+
+> 3d-viewer@2.0.7 dist
+> electron-builder --win --linux
+
+  • electron-builder  version=25.1.8 os=6.17.0-29-generic
+  • loaded configuration  file=package.json ("build" field)
+  • executing @electron/rebuild  electronVersion=33.4.11 arch=x64 buildFromSource=false appDir=./
+  • installing native dependencies  arch=x64
+  • preparing       moduleName=better-sqlite3 arch=x64
+  • finished        moduleName=better-sqlite3 arch=x64
+  • completed installing native dependencies
+  • packaging       platform=linux arch=x64 electron=33.4.11 appOutDir=dist/linux-unpacked
+  • asar usage is disabled — this is strongly not recommended  solution=enable asar and use asarUnpack to unpack files that must be externally available
+  • asar usage is disabled — this is strongly not recommended  solution=enable asar and use asarUnpack to unpack files that must be externally available
+  • building        target=AppImage arch=x64 file=dist/3D Viewer-2.0.7.AppImage
+  • application Linux category is set to default "Utility"  reason=linux.category is not set and cannot map from macOS docs=https://www.electron.build/linux
+  • executing @electron/rebuild  electronVersion=33.4.11 arch=x64 buildFromSource=false appDir=./
+  • installing native dependencies  arch=x64
+  • preparing       moduleName=better-sqlite3 arch=x64
+  • finished        moduleName=better-sqlite3 arch=x64
+  • completed installing native dependencies
+  • packaging       platform=win32 arch=x64 electron=33.4.11 appOutDir=dist/win-unpacked
+  • asar usage is disabled — this is strongly not recommended  solution=enable asar and use asarUnpack to unpack files that must be externally available
+  • asar usage is disabled — this is strongly not recommended  solution=enable asar and use asarUnpack to unpack files that must be externally available
+  • building        target=deb arch=x64 file=dist/3d-viewer_2.0.7_amd64.deb
+  • adding autoupdate files for: deb. (Beta feature)  resourceDir=dist/linux-unpacked/resources
+  • application Linux category is set to default "Utility"  reason=linux.category is not set and cannot map from macOS docs=https://www.electron.build/linux
+  • signing with signtool.exe  path=dist/win-unpacked/3D Viewer.exe
+  • no signing info identified, signing is skipped  signHook=false cscInfo=null

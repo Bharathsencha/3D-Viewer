@@ -1,6 +1,10 @@
 const { app, BrowserWindow, ipcMain, dialog } = require('electron');
 const fs = require('fs');
 const path = require('path');
+const os = require('os');
+const { Worker } = require('worker_threads');
+const { autoUpdater } = require('electron-updater');
+const db = require('./database.cjs');
 
 function createWindow() {
   const mainWindow = new BrowserWindow({
@@ -36,64 +40,183 @@ app.whenReady().then(() => {
     fs.mkdirSync(modelsDir, { recursive: true });
   }
 
-  // Copy default Barbie song if it doesn't exist in the music folder
-  const defaultSongSource = path.join(__dirname, 'assets', 'default_music', 'barbie.mp3');
-  const defaultSongDest = path.join(musicDir, 'barbie.mp3');
-  if (fs.existsSync(defaultSongSource) && !fs.existsSync(defaultSongDest)) {
-    fs.copyFileSync(defaultSongSource, defaultSongDest);
+  db.initDatabase();
+  autoUpdater.checkForUpdatesAndNotify();
+
+  const numWorkers = Math.min(os.cpus().length, 8); // cap at 8
+  const workers = [];
+  const idleWorkers = [];
+  const taskQueue = [];
+  let nextTaskId = 1;
+  const pendingTasks = new Map();
+
+  function processNextTask() {
+    while (taskQueue.length > 0 && idleWorkers.length > 0) {
+      const task = taskQueue.shift();
+      const worker = idleWorkers.pop();
+      worker.postMessage(task);
+    }
   }
 
-  // Copy default Vice City song if it doesn't exist in the music folder
-  const vcSongSource = path.join(__dirname, 'assets', 'default_music', 'vice_city.mp3');
-  const vcSongDest = path.join(musicDir, 'vice_city.mp3');
-  if (fs.existsSync(vcSongSource) && !fs.existsSync(vcSongDest)) {
-    fs.copyFileSync(vcSongSource, vcSongDest);
+  for (let i = 0; i < numWorkers; i++) {
+    const worker = new Worker(path.join(__dirname, 'workers', 'hashWorker.cjs'));
+    worker.on('message', (msg) => {
+      if (pendingTasks.has(msg.id)) {
+        pendingTasks.get(msg.id)(msg);
+        pendingTasks.delete(msg.id);
+      }
+      idleWorkers.push(worker);
+      processNextTask();
+    });
+    worker.on('error', (err) => {
+      console.error('Worker crashed:', err);
+    });
+    worker.on('exit', (code) => {
+      if (code !== 0) console.error(`Worker stopped with exit code ${code}`);
+    });
+    idleWorkers.push(worker);
+    workers.push(worker);
   }
 
-  const ghibli1Source = path.join(__dirname, 'assets', 'default_music', 'ghibli1.mp3');
-  const ghibli1Dest = path.join(musicDir, 'ghibli1.mp3');
-  if (fs.existsSync(ghibli1Source) && !fs.existsSync(ghibli1Dest)) fs.copyFileSync(ghibli1Source, ghibli1Dest);
+  function hashFileAsync(filePath) {
+    return new Promise((resolve, reject) => {
+      const id = nextTaskId++;
+      pendingTasks.set(id, (msg) => {
+        if (msg.error) reject(new Error(msg.error));
+        else resolve(msg.hash);
+      });
+      taskQueue.push({ id, type: 'hash', filePath });
+      processNextTask();
+    });
+  }
 
-  const ghibli2Source = path.join(__dirname, 'assets', 'default_music', 'ghibli2.mp3');
-  const ghibli2Dest = path.join(musicDir, 'ghibli2.mp3');
-  if (fs.existsSync(ghibli2Source) && !fs.existsSync(ghibli2Dest)) fs.copyFileSync(ghibli2Source, ghibli2Dest);
+  let initialScanFinished = false;
+  let initialScanTotal = 0;
 
-  const retroSource = path.join(__dirname, 'assets', 'default_music', 'retro.mp3');
-  const retroDest = path.join(musicDir, 'retro.mp3');
-  if (fs.existsSync(retroSource) && !fs.existsSync(retroDest)) fs.copyFileSync(retroSource, retroDest);
+  (async () => {
+    try {
+      const allFiles = await fs.promises.readdir(modelsDir);
+      const targetFiles = allFiles.filter(f => f.toLowerCase().endsWith('.stl') || f.toLowerCase().endsWith('.3dm'));
+      const existingHashedFiles = db.getAllHashedFiles();
+      const filesToHash = targetFiles.filter(f => !existingHashedFiles.includes(f));
+      
+      initialScanTotal = filesToHash.length;
+      if (initialScanTotal === 0) {
+        initialScanFinished = true;
+      }
+      
+      let count = 0;
+      await Promise.all(filesToHash.map(async (file) => {
+        try {
+          const fullPath = path.join(modelsDir, file);
+          const hash = await hashFileAsync(fullPath);
+          db.insertHash(hash, file);
+        } catch (e) {
+          console.error(`Failed to hash ${file}:`, e);
+        }
+        count++;
+        BrowserWindow.getAllWindows().forEach(win => {
+          win.webContents.send('scan-progress', { current: count, total: filesToHash.length });
+        });
+      }));
+      initialScanFinished = true;
+    } catch (e) {
+      console.error('Error during initial scan:', e);
+      initialScanFinished = true;
+    }
+  })();
 
-  const comm1Source = path.join(__dirname, 'assets', 'default_music', 'red_sun_in_the_sky.mp3');
-  const comm1Dest = path.join(musicDir, 'red_sun_in_the_sky.mp3');
-  if (fs.existsSync(comm1Source) && !fs.existsSync(comm1Dest)) fs.copyFileSync(comm1Source, comm1Dest);
+  ipcMain.handle('models:getScanStatus', () => ({ finished: initialScanFinished, total: initialScanTotal }));
 
-  const comm2Source = path.join(__dirname, 'assets', 'default_music', 'red_sun_in_the_sky_sped_up.mp3');
-  const comm2Dest = path.join(musicDir, 'red_sun_in_the_sky_sped_up.mp3');
-  if (fs.existsSync(comm2Source) && !fs.existsSync(comm2Dest)) fs.copyFileSync(comm2Source, comm2Dest);
+  ipcMain.handle('models:checkDuplicates', async (event, filePaths) => {
+    const duplicates = [];
+    const nonDuplicates = [];
+    for (const filePath of filePaths) {
+      const fileName = path.basename(filePath);
+      const ext = fileName.toLowerCase().split('.').pop();
+      if (ext === 'stl' || ext === '3dm') {
+        try {
+          const hash = await hashFileAsync(filePath);
+          const existing = db.getExistingFilenameByHash(hash);
+          if (existing) {
+            duplicates.push({ original: fileName, existing, existingPath: path.join(modelsDir, existing), path: filePath, hash });
+          } else {
+            nonDuplicates.push({ original: fileName, path: filePath, hash });
+          }
+        } catch (err) {
+          console.error('Error hashing file:', err);
+          nonDuplicates.push({ original: fileName, path: filePath, hash: null });
+        }
+      } else {
+        nonDuplicates.push({ original: fileName, path: filePath, hash: null });
+      }
+    }
+    return { duplicates, nonDuplicates };
+  });
 
-  const spiderSource = path.join(__dirname, 'assets', 'default_music', 'sunflower.mp3');
-  const spiderDest = path.join(musicDir, 'sunflower.mp3');
-  if (fs.existsSync(spiderSource) && !fs.existsSync(spiderDest)) fs.copyFileSync(spiderSource, spiderDest);
+  function generateDuplicateName(originalName, attempt) {
+    const ext = path.extname(originalName);
+    const base = path.basename(originalName, ext);
+    return `${base}(${attempt}D)${ext}`;
+  }
 
-  const saSource = path.join(__dirname, 'assets', 'default_music', 'gta_sa.mp3');
-  const saDest = path.join(musicDir, 'gta_sa.mp3');
-  if (fs.existsSync(saSource) && !fs.existsSync(saDest)) fs.copyFileSync(saSource, saDest);
+  ipcMain.handle('models:replaceFiles', async (event, filesToReplace) => {
+    // filesToReplace: [{ original, existing, existingPath, path: newFilePath, hash }, ...]
+    for (const fileObj of filesToReplace) {
+      try {
+        // Delete the old file
+        await fs.promises.unlink(fileObj.existingPath);
+        // Copy the new file over the old file's exact location (retaining the existing filename)
+        await fs.promises.copyFile(fileObj.path, fileObj.existingPath);
+        // The hash in the DB is the same, so we don't need to change the DB
+      } catch (err) {
+        console.error('Failed to replace file:', err);
+      }
+    }
+    return true;
+  });
 
-  const gta4Source = path.join(__dirname, 'assets', 'default_music', 'gta4.mp3');
-  const gta4Dest = path.join(musicDir, 'gta4.mp3');
-  if (fs.existsSync(gta4Source) && !fs.existsSync(gta4Dest)) fs.copyFileSync(gta4Source, gta4Dest);
+  ipcMain.handle('models:deleteFile', async (event, filePaths) => {
+    for (const filePath of filePaths) {
+      try {
+        await fs.promises.unlink(filePath);
+        db.deleteHash(path.basename(filePath));
+      } catch (err) {
+        console.error('Failed to delete file:', filePath, err);
+      }
+    }
+    return true;
+  });
 
-  const gta5Source = path.join(__dirname, 'assets', 'default_music', 'gta5.mp3');
-  const gta5Dest = path.join(musicDir, 'gta5.mp3');
-  if (fs.existsSync(gta5Source) && !fs.existsSync(gta5Dest)) fs.copyFileSync(gta5Source, gta5Dest);
+  ipcMain.handle('models:commitImport', async (event, filesToImport, forceKeep = false) => {
+    const copiedPaths = [];
+    const existingFiles = await fs.promises.readdir(modelsDir);
 
-  const katiouchaSource = path.join(__dirname, 'assets', 'default_music', 'katioucha.mp3');
-  const katiouchaDest = path.join(musicDir, 'katioucha.mp3');
-  if (fs.existsSync(katiouchaSource) && !fs.existsSync(katiouchaDest)) fs.copyFileSync(katiouchaSource, katiouchaDest);
+    for (const fileObj of filesToImport) {
+      const { original, path: filePath, hash } = fileObj;
+      let finalName = original;
+      
+      if (forceKeep && hash) {
+        let attempt = 1;
+        let candidateName = generateDuplicateName(original, attempt);
+        while (existingFiles.some(f => f.endsWith('_' + candidateName))) {
+            attempt++;
+            candidateName = generateDuplicateName(original, attempt);
+        }
+        finalName = candidateName;
+      }
 
-  const redArmySource = path.join(__dirname, 'assets', 'default_music', 'red_army_choir.mp3');
-  const redArmyDest = path.join(musicDir, 'red_army_choir.mp3');
-  if (fs.existsSync(redArmySource) && !fs.existsSync(redArmyDest)) fs.copyFileSync(redArmySource, redArmyDest);
-
+      const uniqueDestName = Date.now() + '_' + finalName;
+      const destPath = path.join(modelsDir, uniqueDestName);
+      
+      await fs.promises.copyFile(filePath, destPath);
+      if (hash) {
+        db.insertHash(hash, uniqueDestName);
+      }
+      copiedPaths.push(destPath);
+    }
+    return copiedPaths;
+  });
   ipcMain.handle('music:list', async () => {
     try {
       const mm = await import('music-metadata');
@@ -153,31 +276,7 @@ app.whenReady().then(() => {
     });
     if (result.canceled) return [];
     
-    const copiedPaths = [];
-    for (const filePath of result.filePaths) {
-      const fileName = path.basename(filePath);
-      const uniqueName = Date.now() + '_' + fileName;
-      const destPath = path.join(modelsDir, uniqueName);
-      await fs.promises.copyFile(filePath, destPath);
-      copiedPaths.push(destPath);
-    }
-    return copiedPaths;
-  });
-
-  ipcMain.handle('models:import', async (event, filePaths) => {
-    const copiedPaths = [];
-    for (const filePath of filePaths) {
-      const fileName = path.basename(filePath);
-      const uniqueName = Date.now() + '_' + fileName;
-      const destPath = path.join(modelsDir, uniqueName);
-      try {
-        await fs.promises.copyFile(filePath, destPath);
-        copiedPaths.push(destPath);
-      } catch (err) {
-        console.error('Error copying file:', err);
-      }
-    }
-    return copiedPaths;
+    return result.filePaths;
   });
 
   ipcMain.handle('dialog:openFolder', async () => {
@@ -213,6 +312,8 @@ app.whenReady().then(() => {
       return false;
     }
   });
+
+  ipcMain.handle('get-app-path', () => __dirname);
 
   ipcMain.handle('library:save', async (event, data) => {
     const userData = app.getPath('userData');

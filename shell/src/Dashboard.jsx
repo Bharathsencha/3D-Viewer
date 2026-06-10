@@ -3,15 +3,16 @@ import { Folder, File, ChevronRight, Home, Plus, Upload, Sun, Moon, Cat, Brush, 
 import Fuse from 'fuse.js';
 import MusicPlayer from './MusicPlayer';
 import ThemeDropdown from './ThemeDropdown';
-import hammerSickleSvg from '../../assets/images/hammer_and_sickle.svg';
-import spiderSvg from '../../assets/images/spider.svg';
-import ussrFlagImg from '../../assets/images/ussr_flag.jpg';
+import DuplicateManager from './DuplicateManager';
 
 export default function Dashboard({ library, setLibrary, currentFolderId, setCurrentFolderId, setActiveFile, isDarkMode, setIsDarkMode, themeStyle, setThemeStyle, gtaTheme, setGtaTheme, isCommunistSpedUp, setIsCommunistSpedUp, isMilesMorales, setIsMilesMorales, isSpiderVerse, setIsSpiderVerse, isUssrTheme, setIsUssrTheme, isUssrAlt, setIsUssrAlt }) {
   const [showPrompt, setShowPrompt] = useState(false);
   const [newFolderName, setNewFolderName] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [isDragging, setIsDragging] = useState(false);
+  const [isProcessingFiles, setIsProcessingFiles] = useState(false);
+  const [duplicateData, setDuplicateData] = useState(null);
+  const [resolvingDuplicates, setResolvingDuplicates] = useState(null);
   const [editingNodeId, setEditingNodeId] = useState(null);
   const [editingName, setEditingName] = useState('');
   const [nodeToDelete, setNodeToDelete] = useState(null);
@@ -110,6 +111,7 @@ export default function Dashboard({ library, setLibrary, currentFolderId, setCur
   }, [allCurrentItems, selectedNodes, showPrompt, editingNodeId, nodeToDelete]);
 
   const handleNodeClick = (e, node, index) => {
+    e.stopPropagation();
     if (e.ctrlKey || e.metaKey) {
       setSelectedNodes(prev => 
         prev.includes(node.id) ? prev.filter(id => id !== node.id) : [...prev, node.id]
@@ -123,6 +125,7 @@ export default function Dashboard({ library, setLibrary, currentFolderId, setCur
     } else {
       setSelectedNodes([node.id]);
       setLastSelectedIndex(index);
+      // Immediately open if not holding ctrl/shift
       if (node.type === 'folder') {
         setCurrentFolderId(node.id);
       } else {
@@ -130,6 +133,8 @@ export default function Dashboard({ library, setLibrary, currentFolderId, setCur
       }
     }
   };
+
+
 
   // Search Logic
   const allFiles = useMemo(() => {
@@ -203,12 +208,28 @@ export default function Dashboard({ library, setLibrary, currentFolderId, setCur
     setNodeToDelete(nodeId);
   };
 
-  const confirmDeleteNode = () => {
+  const confirmDeleteNode = async () => {
     if (nodeToDelete) {
       if (nodeToDelete === 'multiple') {
-        setLibrary(deleteNodeFromFolder(selectedNodes, library));
+        const pathsToDelete = selectedNodes.filter(n => n.type === 'file').map(n => n.path);
+        if (pathsToDelete.length > 0) await window.api.deleteFile(pathsToDelete);
+        setLibrary(deleteNodeFromFolder(selectedNodes.map(n => n.id), library));
         setSelectedNodes([]);
       } else {
+        const findNode = (nodes, id) => {
+          for (const n of nodes) {
+            if (n.id === id) return n;
+            if (n.children) {
+              const found = findNode(n.children, id);
+              if (found) return found;
+            }
+          }
+          return null;
+        };
+        const node = findNode(library, nodeToDelete);
+        if (node && node.type === 'file') {
+          await window.api.deleteFile([node.path]);
+        }
         setLibrary(deleteNodeFromFolder(nodeToDelete, library));
       }
       setNodeToDelete(null);
@@ -232,25 +253,81 @@ export default function Dashboard({ library, setLibrary, currentFolderId, setCur
   const handleAddFiles = async () => {
     const filePaths = await window.api.openFiles();
     if (filePaths && filePaths.length > 0) {
-      const newNodes = await Promise.all(filePaths.map(async filePath => {
-        const stats = await window.api.getFileSize(filePath);
-        return {
-          id: Date.now().toString() + Math.random(),
-          type: 'file',
-          name: (await window.api.basename(filePath)).replace(/^\d{13}_/, ''),
-          path: filePath,
-          missing: false,
-          size: stats ? stats.size : 0
-        };
+      setIsProcessingFiles(true);
+      try {
+        const result = await window.api.checkDuplicates(filePaths);
+        if (result.duplicates.length > 0) {
+          setDuplicateData(result);
+        } else {
+          await commitAndAddNodes(result.nonDuplicates, false);
+        }
+      } catch (err) {
+        console.error('Failed to process files:', err);
+      } finally {
+        setIsProcessingFiles(false);
+      }
+    }
+  };
+
+  const commitAndAddNodes = async (files, forceKeep) => {
+    try {
+      const copiedPaths = await window.api.commitImport(files, forceKeep);
+      const newNodes = copiedPaths.map((newPath, idx) => ({
+        id: 'file_' + Date.now() + '_' + idx,
+        type: 'file',
+        name: newPath.split(/[/\\]/).pop().replace(/^\d{13}_/, ''),
+        path: newPath,
+        missing: false
       }));
-      
       let newLib = library;
       for (const node of newNodes) {
         newLib = addNodeToFolder(currentFolderId, node, newLib);
       }
       setLibrary(newLib);
+    } catch (err) {
+      console.error('Failed to commit import:', err);
     }
   };
+
+  const handleDuplicateResolutionComplete = async (results) => {
+    const nonDups = duplicateData?.nonDuplicates || [];
+    
+    const toKeepBoth = results.filter(r => r.action === 'keep_both');
+    const toReplace = results.filter(r => r.action === 'replace');
+    
+    setResolvingDuplicates(null);
+    setDuplicateData(null);
+
+    if (toReplace.length > 0) {
+      await window.api.replaceFiles(toReplace);
+      
+      const updateNodeRecursively = (nodes) => {
+        return nodes.map(node => {
+          if (node.type === 'file') {
+            const replaceAction = toReplace.find(r => r.existingPath === node.path);
+            if (replaceAction) {
+              return { ...node, name: replaceAction.original };
+            }
+          }
+          if (node.type === 'folder' && node.children) {
+            return { ...node, children: updateNodeRecursively(node.children) };
+          }
+          return node;
+        });
+      };
+      
+      setLibrary(prev => updateNodeRecursively(prev));
+    }
+
+    if (toKeepBoth.length > 0) {
+      await commitAndAddNodes(toKeepBoth, true);
+    }
+    
+    if (nonDups.length > 0) {
+      await commitAndAddNodes(nonDups, false);
+    }
+  };
+
 
   const handleDrop = async (e) => {
     e.preventDefault();
@@ -258,25 +335,19 @@ export default function Dashboard({ library, setLibrary, currentFolderId, setCur
     const droppedFiles = Array.from(e.dataTransfer.files).map(f => window.api.getFilePath(f)).filter(Boolean);
     if (droppedFiles.length === 0) return;
 
-    const importedFiles = await window.api.importFiles(droppedFiles);
-
-    const newNodes = await Promise.all(importedFiles.map(async filePath => {
-      const stats = await window.api.getFileSize(filePath);
-      return {
-        id: Date.now().toString() + Math.random(),
-        type: 'file',
-        name: (await window.api.basename(filePath)).replace(/^\d{13}_/, ''),
-        path: filePath,
-        missing: false,
-        size: stats ? stats.size : 0
-      };
-    }));
-
-    let newLib = library;
-    for (const node of newNodes) {
-      newLib = addNodeToFolder(currentFolderId, node, newLib);
+    setIsProcessingFiles(true);
+    try {
+      const result = await window.api.checkDuplicates(droppedFiles);
+      if (result.duplicates.length > 0) {
+        setDuplicateData(result);
+      } else {
+        await commitAndAddNodes(result.nonDuplicates, false);
+      }
+    } catch (err) {
+      console.error('Failed to process dropped files:', err);
+    } finally {
+      setIsProcessingFiles(false);
     }
-    setLibrary(newLib);
   };
 
   const breadcrumbs = [
@@ -303,6 +374,7 @@ export default function Dashboard({ library, setLibrary, currentFolderId, setCur
         flex: 1, display: 'flex', flexDirection: 'column', height: '100%', overflowY: 'auto', padding: '40px 60px',
         position: 'relative'
       }}
+      onClick={() => setSelectedNodes([])}
       onDrop={handleDrop} 
       onDragEnter={e => {
         e.preventDefault();
@@ -320,6 +392,95 @@ export default function Dashboard({ library, setLibrary, currentFolderId, setCur
         setIsDragging(false);
       }}
     >
+      {isProcessingFiles && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)', zIndex: 9999, display: 'flex', flexDirection: 'column',
+          alignItems: 'center', justifyContent: 'center', color: '#fff'
+        }}>
+          <h2 style={{ fontSize: '24px', marginBottom: '24px' }}>Files are being uploaded and processed...</h2>
+          <div style={{ width: '40px', height: '40px', border: '4px solid rgba(255,255,255,0.2)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
+        </div>
+      )}
+
+      {resolvingDuplicates && (
+        <DuplicateManager
+          duplicates={resolvingDuplicates}
+          onComplete={handleDuplicateResolutionComplete}
+          onCancel={() => {
+            setResolvingDuplicates(null);
+            const nonDups = duplicateData.nonDuplicates || [];
+            setDuplicateData(null);
+            if (nonDups.length > 0) commitAndAddNodes(nonDups, false);
+          }}
+        />
+      )}
+
+      {duplicateData && !resolvingDuplicates && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(0,0,0,0.5)', zIndex: 9999, display: 'flex',
+          alignItems: 'center', justifyContent: 'center'
+        }}>
+          <div style={{
+            background: 'var(--bg-color)', padding: '32px', borderRadius: '16px',
+            width: '500px', maxWidth: '90%', color: 'var(--text-main)',
+            boxShadow: '0 10px 25px rgba(0,0,0,0.2)'
+          }}>
+            <h2 style={{ marginTop: 0, marginBottom: '16px', fontSize: '20px' }}>These files already exist</h2>
+            <p style={{ marginBottom: '16px', color: 'var(--text-muted)' }}>
+              We found {duplicateData.duplicates.length} duplicate file(s).
+            </p>
+            <div style={{
+              maxHeight: '150px', overflowY: 'auto', marginBottom: '24px',
+              background: 'var(--bg-secondary)', padding: '12px', borderRadius: '8px'
+            }}>
+              {duplicateData.duplicates.map((d, i) => (
+                <div key={i} style={{ marginBottom: '8px', fontSize: '14px' }}>
+                  <strong>{d.original}</strong>
+                </div>
+              ))}
+            </div>
+            <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+              <button 
+                onClick={() => setResolvingDuplicates(duplicateData.duplicates)}
+                style={{
+                  padding: '8px 16px', borderRadius: '8px', border: '1px solid var(--border-color)',
+                  background: 'transparent', color: 'var(--text-main)', cursor: 'pointer', fontWeight: 500
+                }}
+              >
+                View them
+              </button>
+              <button 
+                onClick={() => {
+                  const nonDups = duplicateData.nonDuplicates;
+                  setDuplicateData(null);
+                  if (nonDups.length > 0) commitAndAddNodes(nonDups, false);
+                }}
+                style={{
+                  padding: '8px 16px', borderRadius: '8px', border: '1px solid var(--border-color)',
+                  background: 'transparent', color: 'var(--text-main)', cursor: 'pointer', fontWeight: 500
+                }}
+              >
+                Remove them
+              </button>
+              <button 
+                onClick={() => {
+                  const allFiles = [...duplicateData.nonDuplicates, ...duplicateData.duplicates];
+                  setDuplicateData(null);
+                  commitAndAddNodes(allFiles, true);
+                }}
+                style={{
+                  padding: '8px 16px', borderRadius: '8px', border: 'none',
+                  background: 'var(--accent-color)', color: '#fff', cursor: 'pointer', fontWeight: 500
+                }}
+              >
+                Keep them
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       {isDragging && (
         <div style={{
           position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
@@ -402,7 +563,7 @@ export default function Dashboard({ library, setLibrary, currentFolderId, setCur
                 }}
                 title="Toggle USSR Easter Egg"
               >
-                <img src={ussrFlagImg} alt="USSR Flag" width="24" height="16" style={{ borderRadius: '2px' }} />
+                <span style={{ fontSize: '16px' }}>☭</span>
               </button>
             )}
             <ThemeDropdown themeStyle={themeStyle} setThemeStyle={setThemeStyle} />
@@ -588,11 +749,11 @@ export default function Dashboard({ library, setLibrary, currentFolderId, setCur
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(59, 130, 246, 0.1)', border: '1px solid var(--accent-color)', borderRadius: '12px', padding: '12px 24px', marginBottom: '24px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
             <span style={{ fontWeight: 600, color: 'var(--accent-color)' }}>{selectedNodes.length} item(s) selected</span>
-            <button onClick={() => setSelectedNodes([])} style={{ background: 'transparent', border: '1px solid var(--accent-color)', color: 'var(--accent-color)', padding: '4px 12px', borderRadius: '16px', cursor: 'pointer', fontSize: '13px', fontWeight: 600 }}>Clear Selection</button>
-            <button onClick={() => setSelectedNodes(allCurrentItems.map(item => item.id))} style={{ background: 'var(--accent-color)', border: 'none', color: '#fff', padding: '4px 12px', borderRadius: '16px', cursor: 'pointer', fontSize: '13px', fontWeight: 600 }}>Select All</button>
+            <button onClick={(e) => { e.stopPropagation(); setSelectedNodes([]); }} style={{ background: 'transparent', border: '1px solid var(--accent-color)', color: 'var(--accent-color)', padding: '4px 12px', borderRadius: '16px', cursor: 'pointer', fontSize: '13px', fontWeight: 600 }}>Clear Selection</button>
+            <button onClick={(e) => { e.stopPropagation(); setSelectedNodes(allCurrentItems.map(item => item.id)); }} style={{ background: 'var(--accent-color)', border: 'none', color: '#fff', padding: '4px 12px', borderRadius: '16px', cursor: 'pointer', fontSize: '13px', fontWeight: 600 }}>Select All</button>
           </div>
           <div style={{ display: 'flex', gap: '12px' }}>
-            <button onClick={() => setNodeToDelete('multiple')} style={{ display: 'flex', alignItems: 'center', gap: '6px', background: '#EF4444', color: 'white', border: 'none', padding: '8px 16px', borderRadius: '8px', cursor: 'pointer', fontWeight: 600 }}>
+            <button onClick={(e) => { e.stopPropagation(); setNodeToDelete('multiple'); }} style={{ display: 'flex', alignItems: 'center', gap: '6px', background: '#EF4444', color: 'white', border: 'none', padding: '8px 16px', borderRadius: '8px', cursor: 'pointer', fontWeight: 600 }}>
               <Trash2 size={16} /> Delete Selected
             </button>
           </div>
@@ -671,15 +832,15 @@ export default function Dashboard({ library, setLibrary, currentFolderId, setCur
                   key={folder.id} 
                   onClick={(e) => handleNodeClick(e, folder, index)}
                   style={{
-                    background: 'var(--surface-color)',
+                    background: selectedNodes.includes(folder.id) ? 'var(--bg-color)' : 'var(--surface-color)',
                     padding: '24px',
                     borderRadius: '16px',
-                    boxShadow: selectedNodes.includes(folder.id) ? '0 0 0 2px var(--accent-color)' : 'var(--shadow-md)',
+                    boxShadow: selectedNodes.includes(folder.id) ? '0 0 0 3px var(--accent-color)' : 'var(--shadow-md)',
                     cursor: 'pointer',
                     display: 'flex',
                     flexDirection: 'column',
                     gap: '12px',
-                    border: '1px solid var(--border-color)',
+                    border: selectedNodes.includes(folder.id) ? '1px solid var(--accent-color)' : '1px solid var(--border-color)',
                     transition: 'all 0.2s',
                   }}
                   onMouseEnter={e => {
@@ -759,15 +920,15 @@ export default function Dashboard({ library, setLibrary, currentFolderId, setCur
                     handleNodeClick(e, file, globalIndex);
                   }}
                   style={{
-                    background: 'var(--surface-color)',
+                    background: selectedNodes.includes(file.id) ? 'var(--bg-color)' : 'var(--surface-color)',
                     padding: '24px',
                     borderRadius: '16px',
-                    boxShadow: selectedNodes.includes(file.id) ? '0 0 0 2px var(--accent-color)' : 'var(--shadow-md)',
+                    boxShadow: selectedNodes.includes(file.id) ? '0 0 0 3px var(--accent-color)' : 'var(--shadow-md)',
                     cursor: file.missing ? 'not-allowed' : 'pointer',
                     display: 'flex',
                     flexDirection: 'column',
                     gap: '12px',
-                    border: '1px solid var(--border-color)',
+                    border: selectedNodes.includes(file.id) ? '1px solid var(--accent-color)' : '1px solid var(--border-color)',
                     opacity: file.missing ? 0.6 : 1,
                     transition: 'all 0.2s',
                   }}

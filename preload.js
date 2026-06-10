@@ -2,7 +2,11 @@ const { contextBridge, ipcRenderer, webUtils } = require('electron');
 
 contextBridge.exposeInMainWorld('api', {
   openFiles: () => ipcRenderer.invoke('dialog:openFiles'),
-  importFiles: (filePaths) => ipcRenderer.invoke('models:import', filePaths),
+  checkDuplicates: (filePaths) => ipcRenderer.invoke('models:checkDuplicates', filePaths),
+  replaceFiles: (filesToReplace) => ipcRenderer.invoke('models:replaceFiles', filesToReplace),
+  deleteFile: (filePaths) => ipcRenderer.invoke('models:deleteFile', filePaths),
+  commitImport: (filesToImport, forceKeep) => ipcRenderer.invoke('models:commitImport', filesToImport, forceKeep),
+  getScanStatus: () => ipcRenderer.invoke('models:getScanStatus'),
   openFolder: () => ipcRenderer.invoke('dialog:openFolder'),
   readFile: (filePath) => ipcRenderer.invoke('fs:readFile', filePath),
   checkExists: (filePath) => ipcRenderer.invoke('fs:checkExists', filePath),
@@ -13,5 +17,7 @@ contextBridge.exposeInMainWorld('api', {
   listMusic: () => ipcRenderer.invoke('music:list'),
   uploadMusic: () => ipcRenderer.invoke('music:upload'),
   getFileSize: (filePath) => ipcRenderer.invoke('fs:stat', filePath),
-  getFilePath: (file) => webUtils.getPathForFile(file)
+  getFilePath: (file) => webUtils.getPathForFile(file),
+  onScanProgress: (callback) => ipcRenderer.on('scan-progress', (_event, value) => callback(value)),
+  getAppPath: () => ipcRenderer.invoke('get-app-path')
 });

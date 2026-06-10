@@ -5,7 +5,7 @@ const globalAudio = new Audio();
 let globalCurrentSong = null;
 let globalIsPlaying = false;
 
-export default function MusicPlayer({ themeStyle, isDarkMode, gtaTheme, isCommunistSpedUp, isUssrTheme, isUssrAlt }) {
+export default function MusicPlayer({ themeStyle, isDarkMode }) {
   const [songs, setSongs] = useState([]);
   const [currentSong, setCurrentSong] = useState(globalCurrentSong);
   const [isPlaying, setIsPlaying] = useState(globalIsPlaying);
@@ -31,111 +31,22 @@ export default function MusicPlayer({ themeStyle, isDarkMode, gtaTheme, isCommun
   }, []);
 
   useEffect(() => {
-    if (songs.length > 0) {
-      const barbieSong = songs.find(s => s.name.toLowerCase().includes('barbie'));
-      const vcSong = songs.find(s => s.name.toLowerCase().includes('vice_city'));
-      const saSong = songs.find(s => s.name.toLowerCase().includes('gta_sa'));
-      const gta4Song = songs.find(s => s.name.toLowerCase().includes('gta4'));
-      const gta5Song = songs.find(s => s.name.toLowerCase().includes('gta5'));
-      const ghibli1Song = songs.find(s => s.name.toLowerCase().includes('ghibli1'));
-      const ghibli2Song = songs.find(s => s.name.toLowerCase().includes('ghibli2'));
-      const retroSong = songs.find(s => s.name.toLowerCase().includes('retro'));
-      const comm1Song = songs.find(s => s.name.toLowerCase() === 'red_sun_in_the_sky.mp3');
-      const comm2Song = songs.find(s => s.name.toLowerCase() === 'red_sun_in_the_sky_sped_up.mp3');
-      const katiouchaSong = songs.find(s => s.name.toLowerCase() === 'katioucha.mp3');
-      const redArmySong = songs.find(s => s.name.toLowerCase() === 'red_army_choir.mp3');
-      const spiderSong = songs.find(s => s.name.toLowerCase() === 'sunflower.mp3');
-      
-      if (themeStyle === 'barbie') {
-        if (barbieSong && currentSong?.path !== barbieSong.path) {
-          playSong(barbieSong);
-        } else if (barbieSong && !isPlaying) {
-          audioRef.current.play();
-          setIsPlaying(true);
-        }
-      } else if (themeStyle === 'gta') {
-        let targetSong = vcSong;
-        if (gtaTheme === 'san_andreas') targetSong = saSong;
-        if (gtaTheme === 'gta4') targetSong = gta4Song;
-        if (gtaTheme === 'gta5') targetSong = gta5Song;
-        
-        if (targetSong && currentSong?.path !== targetSong.path) {
-          playSong(targetSong);
-        } else if (targetSong && !isPlaying) {
-          audioRef.current.play();
-          setIsPlaying(true);
-        }
-      } else if (themeStyle === 'ghibli') {
-        const targetSong = isDarkMode ? ghibli2Song : ghibli1Song;
-        if (targetSong && currentSong?.path !== targetSong.path) {
-          playSong(targetSong);
-        } else if (targetSong && !isPlaying) {
-          audioRef.current.play();
-          setIsPlaying(true);
-        }
-      } else if (themeStyle === 'retro') {
-        if (retroSong && currentSong?.path !== retroSong.path) {
-          playSong(retroSong);
-        } else if (retroSong && !isPlaying) {
-          audioRef.current.play();
-          setIsPlaying(true);
-        }
-      } else if (themeStyle === 'communist') {
-        let targetSong = isCommunistSpedUp ? comm2Song : comm1Song;
-        if (isUssrTheme) {
-          targetSong = isUssrAlt ? redArmySong : katiouchaSong;
-        }
-        if (targetSong && currentSong?.path !== targetSong.path) {
-          playSong(targetSong);
-        } else if (targetSong && !isPlaying) {
-          audioRef.current.play();
-          setIsPlaying(true);
-        }
-      } else if (themeStyle === 'spiderman') {
-        if (spiderSong && currentSong?.path !== spiderSong.path) {
-          playSong(spiderSong);
-        } else if (spiderSong && !isPlaying) {
-          audioRef.current.play();
-          setIsPlaying(true);
-        }
-      } else {
-        // If theme is NOT a specific music theme, and current song is one of the theme songs, pause and clear it
-        if (currentSong && (
-          currentSong.path === barbieSong?.path || 
-          currentSong.path === vcSong?.path || 
-          currentSong.path === saSong?.path || 
-          currentSong.path === gta4Song?.path || 
-          currentSong.path === gta5Song?.path || 
-          currentSong.path === ghibli1Song?.path || 
-          currentSong.path === ghibli2Song?.path ||
-          currentSong.path === ghibli2Song?.path ||
-          currentSong.path === retroSong?.path ||
-          currentSong.path === comm1Song?.path ||
-          currentSong.path === comm2Song?.path ||
-          currentSong.path === spiderSong?.path
-        )) {
-          audioRef.current.pause();
-          setIsPlaying(false);
-          globalIsPlaying = false;
-          setCurrentSong(null);
-          globalCurrentSong = null;
-        }
-      }
-    }
-  }, [themeStyle, isDarkMode, gtaTheme, isCommunistSpedUp, isUssrTheme, isUssrAlt, songs, currentSong]);
+    // If we had any theme-specific music logic, it would go here.
+    // For now, no themes have auto-play music.
+  }, [themeStyle, isDarkMode, songs, currentSong]);
 
   const fetchSongs = async () => {
     try {
       const list = await window.api.listMusic();
       setSongs(list);
       
-      // Auto-select barbie song if none selected
+      // Auto-select first song if none selected
       if (!globalCurrentSong && list.length > 0) {
-        const barbieSong = list.find(s => s.name.toLowerCase().includes('barbie'));
-        if (barbieSong) {
-          setCurrentSong(barbieSong);
-          globalCurrentSong = barbieSong;
-          audioRef.current.src = `file://${barbieSong.path}`;
+        const firstSong = list[0];
+        if (firstSong) {
+          setCurrentSong(firstSong);
+          globalCurrentSong = firstSong;
+          audioRef.current.src = `file://${firstSong.path}`;
         }
       }
     } catch (e) {
