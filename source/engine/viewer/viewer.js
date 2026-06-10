@@ -22,7 +22,7 @@ export function GetDefaultCamera (direction)
         );
     } else if (direction === Direction.Y) {
         return new Camera (
-            new Coord3D (-1.5, 2.0, 3.0),
+            new Coord3D (2.5, 2.5, 2.5),
             new Coord3D (0.0, 0.0, 0.0),
             new Coord3D (0.0, 1.0, 0.0),
             fieldOfView

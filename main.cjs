@@ -6,6 +6,8 @@ const { Worker } = require('worker_threads');
 const { autoUpdater } = require('electron-updater');
 const db = require('./database.cjs');
 
+// Thumbnail logic removed per user request
+
 function createWindow() {
   const mainWindow = new BrowserWindow({
     width: 1200,
@@ -191,15 +193,15 @@ app.whenReady().then(() => {
     return true;
   });
 
-  ipcMain.handle('models:commitImport', async (event, filesToImport, forceKeep = false) => {
+  ipcMain.handle('models:commitImport', async (event, filesToImport, globalForceKeep = false) => {
     const copiedPaths = [];
     const existingFiles = await fs.promises.readdir(modelsDir);
 
     for (const fileObj of filesToImport) {
-      const { original, path: filePath, hash } = fileObj;
+      const { original, path: filePath, hash, forceKeep } = fileObj;
       let finalName = original;
       
-      if (forceKeep && hash) {
+      if ((globalForceKeep || forceKeep) && hash) {
         let attempt = 1;
         let candidateName = generateDuplicateName(original, attempt);
         while (existingFiles.some(f => f.endsWith('_' + candidateName))) {

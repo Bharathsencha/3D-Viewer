@@ -2,6 +2,8 @@ const { contextBridge, ipcRenderer, webUtils } = require('electron');
 
 contextBridge.exposeInMainWorld('api', {
   openFiles: () => ipcRenderer.invoke('dialog:openFiles'),
+  extractArchive: (filePath) => ipcRenderer.invoke('models:extractArchive', filePath),
+  generateThumbnail: (filePath) => ipcRenderer.invoke('models:generateThumbnail', filePath),
   checkDuplicates: (filePaths) => ipcRenderer.invoke('models:checkDuplicates', filePaths),
   replaceFiles: (filesToReplace) => ipcRenderer.invoke('models:replaceFiles', filesToReplace),
   deleteFile: (filePaths) => ipcRenderer.invoke('models:deleteFile', filePaths),
@@ -23,6 +25,11 @@ contextBridge.exposeInMainWorld('api', {
     const listener = (_event, value) => callback(value);
     ipcRenderer.on('upload-progress', listener);
     return () => ipcRenderer.removeListener('upload-progress', listener);
+  },
+  onBackgroundTaskProgress: (callback) => {
+    const listener = (_event, value) => callback(value);
+    ipcRenderer.on('background-tasks', listener);
+    return () => ipcRenderer.removeListener('background-tasks', listener);
   },
   getAppPath: () => ipcRenderer.invoke('get-app-path')
 });

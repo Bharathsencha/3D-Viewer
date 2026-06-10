@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useEffect, useRef } from 'react';
-import { Folder, File, ChevronRight, Home, Plus, Upload, Sun, Moon, Cat, Brush, Search, Box, Image, Code, FileBox, Type, Edit2, Trash2, ListFilter, Check } from 'lucide-react';
+import { Folder, File, ChevronRight, Home, Plus, Upload, Sun, Moon, Cat, Brush, Search, Box, Image, Code, FileBox, Type, Edit2, Trash2, ListFilter, Check, Star, LayoutGrid, List } from 'lucide-react';
 import Fuse from 'fuse.js';
 
 import ThemeDropdown from './ThemeDropdown';
@@ -22,6 +22,9 @@ export default function Dashboard({ library, setLibrary, currentFolderId, setCur
   const [lastSelectedIndex, setLastSelectedIndex] = useState(null);
   const [uploadProgress, setUploadProgress] = useState(null);
   const [isMultiSelectMode, setIsMultiSelectMode] = useState(false);
+  const [activeSidebarTab, setActiveSidebarTab] = useState('folders');
+  const [filterExt, setFilterExt] = useState('all');
+  const [viewMode, setViewMode] = useState('grid');
   const hasFetchedSizes = useRef(false);
 
   useEffect(() => {
@@ -78,8 +81,24 @@ export default function Dashboard({ library, setLibrary, currentFolderId, setCur
     return { currentFolder, path };
   }, [library, currentFolderId]);
 
-  const currentNodes = currentFolder ? currentFolder.children : (library || []);
+  let baseNodes = currentFolder ? currentFolder.children : (library || []);
   
+  if (activeSidebarTab === 'favorites') {
+    const allFavs = [];
+    const findFavs = (nodes) => {
+      for (let n of nodes) {
+        if (n.type === 'file' && n.isFavorite) allFavs.push(n);
+        if (n.children) findFavs(n.children);
+      }
+    };
+    findFavs(library || []);
+    baseNodes = allFavs;
+  }
+
+  if (filterExt !== 'all') {
+    baseNodes = baseNodes.filter(n => n.type === 'folder' || n.name.toLowerCase().endsWith('.' + filterExt));
+  }
+
   const sortNodes = (nodes) => {
     return [...nodes].sort((a, b) => {
       if (sortBy === 'name-asc') return a.name.localeCompare(b.name);
@@ -91,8 +110,8 @@ export default function Dashboard({ library, setLibrary, currentFolderId, setCur
     });
   };
 
-  const folders = sortNodes(currentNodes.filter(n => n.type === 'folder'));
-  const files = sortNodes(currentNodes.filter(n => n.type === 'file'));
+  const folders = sortNodes(baseNodes.filter(n => n.type === 'folder'));
+  const files = sortNodes(baseNodes.filter(n => n.type === 'file'));
   const allCurrentItems = [...folders, ...files];
 
   useEffect(() => {
@@ -254,6 +273,23 @@ export default function Dashboard({ library, setLibrary, currentFolderId, setCur
     }
   };
 
+  const toggleFavorite = (e, nodeId) => {
+    e.stopPropagation();
+    const newLib = JSON.parse(JSON.stringify(library));
+    const findAndToggle = (nodes) => {
+      for (let n of nodes) {
+        if (n.id === nodeId) {
+          n.isFavorite = !n.isFavorite;
+          return true;
+        }
+        if (n.children && findAndToggle(n.children)) return true;
+      }
+      return false;
+    };
+    findAndToggle(newLib);
+    setLibrary(newLib);
+  };
+
   const handleCreateFolder = () => {
     setNewFolderName('');
     setShowPrompt(true);
@@ -341,11 +377,15 @@ export default function Dashboard({ library, setLibrary, currentFolderId, setCur
 
 
     if (toKeepBoth.length > 0) {
-      await commitAndAddNodes(toKeepBoth, true);
+      finalList = finalList.concat(toKeepBoth.map(f => ({ ...f, forceKeep: true })));
     }
     
     if (nonDups.length > 0) {
-      await commitAndAddNodes(nonDups, false);
+      finalList = finalList.concat(nonDups.map(f => ({ ...f, forceKeep: false })));
+    }
+    
+    if (finalList.length > 0) {
+      await commitAndAddNodes(finalList, false);
     }
   };
 
@@ -492,9 +532,12 @@ export default function Dashboard({ library, setLibrary, currentFolderId, setCur
               </button>
               <button 
                 onClick={() => {
-                  const allFiles = [...duplicateData.nonDuplicates, ...duplicateData.duplicates];
+                  const allFiles = [
+                    ...duplicateData.nonDuplicates.map(f => ({ ...f, forceKeep: false })),
+                    ...duplicateData.duplicates.map(f => ({ ...f, forceKeep: true }))
+                  ];
                   setDuplicateData(null);
-                  commitAndAddNodes(allFiles, true);
+                  commitAndAddNodes(allFiles, false);
                 }}
                 style={{
                   padding: '8px 16px', borderRadius: '8px', border: 'none',
@@ -683,8 +726,48 @@ export default function Dashboard({ library, setLibrary, currentFolderId, setCur
             />
           </div>
 
-          <div style={{ position: 'relative' }}>
+          <div style={{ display: 'flex', background: 'var(--surface-color)', border: '1px solid var(--border-color)', borderRadius: '8px', overflow: 'hidden' }}>
             <div 
+              onClick={() => { setActiveSidebarTab('folders'); setCurrentFolderId(null); }}
+              title="Home"
+              style={{ padding: '8px 16px', display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', background: activeSidebarTab === 'folders' ? 'var(--accent-color)' : 'transparent', color: activeSidebarTab === 'folders' ? '#fff' : 'var(--text-muted)' }}
+            ><Home size={16} /> Home</div>
+            <div 
+              onClick={() => { setActiveSidebarTab('favorites'); setCurrentFolderId(null); }}
+              title="Favorites"
+              style={{ padding: '8px 16px', display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', background: activeSidebarTab === 'favorites' ? 'var(--accent-color)' : 'transparent', color: activeSidebarTab === 'favorites' ? '#fff' : 'var(--text-muted)' }}
+            ><Star size={16} /> Favorites</div>
+          </div>
+
+          <select 
+            value={filterExt} 
+            onChange={(e) => setFilterExt(e.target.value)}
+            style={{ 
+              padding: '8px 12px', borderRadius: '8px', border: '1px solid var(--border-color)', 
+              background: 'var(--surface-color)', color: 'var(--text-main)', outline: 'none', cursor: 'pointer'
+            }}
+          >
+            <option value="all">All Types</option>
+            <option value="stl">.STL</option>
+            <option value="obj">.OBJ</option>
+            <option value="3dm">.3DM</option>
+          </select>
+
+          <div style={{ display: 'flex', background: 'var(--surface-color)', border: '1px solid var(--border-color)', borderRadius: '8px', overflow: 'hidden' }}>
+            <div 
+              onClick={() => setViewMode('grid')}
+              title="Grid View"
+              style={{ padding: '8px', cursor: 'pointer', background: viewMode === 'grid' ? 'var(--accent-color)' : 'transparent', color: viewMode === 'grid' ? '#fff' : 'var(--text-muted)' }}
+            ><LayoutGrid size={18} /></div>
+            <div 
+              onClick={() => setViewMode('list')}
+              title="List View"
+              style={{ padding: '8px', cursor: 'pointer', background: viewMode === 'list' ? 'var(--accent-color)' : 'transparent', color: viewMode === 'list' ? '#fff' : 'var(--text-muted)' }}
+            ><List size={18} /></div>
+          </div>
+
+          <div style={{ position: 'relative' }}>
+            <button 
               onClick={() => setIsSortOpen(!isSortOpen)}
               style={{ display: 'flex', alignItems: 'center', background: 'var(--surface-color)', padding: '6px 16px', borderRadius: '24px', border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-sm)', gap: '8px', cursor: 'pointer', userSelect: 'none' }}
             >
@@ -697,7 +780,7 @@ export default function Dashboard({ library, setLibrary, currentFolderId, setCur
                 {sortBy === 'size-desc' && 'Size (Large)'}
                 {sortBy === 'size-asc' && 'Size (Small)'}
               </span>
-            </div>
+            </button>
             
             {isSortOpen && (
               <div style={{
@@ -802,17 +885,34 @@ export default function Dashboard({ library, setLibrary, currentFolderId, setCur
       )}
 
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '32px', color: 'var(--text-muted)', fontSize: '15px', fontWeight: 600 }}>
-        {breadcrumbs.map((bc, idx) => (
+        {activeSidebarTab === 'folders' ? breadcrumbs.map((crumb, idx) => (
           <React.Fragment key={idx}>
-            <div 
-              style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', color: idx === breadcrumbs.length - 1 ? 'var(--accent-color)' : 'inherit' }}
-              onClick={() => setCurrentFolderId(bc.id)}
+            <span 
+              onClick={() => {
+                setSelectedNodes([]);
+                setCurrentFolderId(crumb.id);
+                setActiveSidebarTab('folders');
+              }}
+              style={{
+                cursor: 'pointer',
+                fontWeight: idx === breadcrumbs.length - 1 ? 700 : 500,
+                color: idx === breadcrumbs.length - 1 ? 'var(--text-main)' : 'var(--text-muted)',
+                transition: 'color 0.2s',
+                padding: '4px 8px',
+                borderRadius: '6px',
+              }}
+              onMouseEnter={e => e.currentTarget.style.color = 'var(--text-main)'}
+              onMouseLeave={e => e.currentTarget.style.color = idx === breadcrumbs.length - 1 ? 'var(--text-main)' : 'var(--text-muted)'}
             >
-              {idx === 0 ? <Home size={22} strokeWidth={2.5} /> : bc.name}
-            </div>
-            {idx < breadcrumbs.length - 1 && <ChevronRight size={18} strokeWidth={2.5} />}
+              {idx === 0 ? <Home size={22} strokeWidth={2.5} /> : crumb.name}
+            </span>
+            {idx < breadcrumbs.length - 1 && <ChevronRight size={16} color="var(--text-muted)" />}
           </React.Fragment>
-        ))}
+        )) : (
+          <span style={{ fontWeight: 700, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Star size={22} fill="gold" color="gold" /> Favorites
+          </span>
+        )}
       </div>
 
       <div style={{ flex: 1 }}>
@@ -867,6 +967,29 @@ export default function Dashboard({ library, setLibrary, currentFolderId, setCur
             {folders.length > 0 && (
           <div style={{ marginBottom: '40px' }}>
             <h2 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '20px', color: 'var(--text-main)' }}>Folders</h2>
+            {viewMode === 'list' ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {folders.map((folder, index) => (
+                  <div 
+                    key={folder.id} 
+                    onClick={(e) => handleNodeClick(e, folder, index)}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: '16px', padding: '12px 16px',
+                      borderRadius: '8px', cursor: 'pointer',
+                      background: selectedNodes.includes(folder.id) ? 'var(--accent-color)' : 'var(--surface-color)',
+                      color: selectedNodes.includes(folder.id) ? '#fff' : 'var(--text-main)',
+                      border: selectedNodes.includes(folder.id) ? '2px solid var(--accent-color)' : '2px solid transparent',
+                    }}
+                  >
+                    <Folder size={20} fill={selectedNodes.includes(folder.id) ? 'rgba(255,255,255,0.4)' : 'var(--accent-color)'} color={selectedNodes.includes(folder.id) ? '#fff' : 'var(--accent-color)'} />
+                    <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{folder.name}</span>
+                    <div style={{ fontSize: '13px', color: selectedNodes.includes(folder.id) ? 'rgba(255,255,255,0.8)' : 'var(--text-muted)' }}>
+                      {(folder.children?.length || 0)} items
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '24px' }}>
               {folders.map((folder, index) => (
                 <div 
@@ -949,12 +1072,56 @@ export default function Dashboard({ library, setLibrary, currentFolderId, setCur
                 </div>
               ))}
             </div>
+            )}
           </div>
         )}
 
         {files.length > 0 && (
           <div>
             <h2 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '20px', color: 'var(--text-main)' }}>Files</h2>
+            {viewMode === 'list' ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {files.map((file, index) => {
+                  const { Icon, color } = getFileIconInfo(file.name);
+                  const globalIndex = folders.length + index;
+                  return (
+                    <div 
+                      key={file.id}
+                      onClick={(e) => {
+                        if (file.missing) return;
+                        handleNodeClick(e, file, globalIndex);
+                      }}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: '16px', padding: '12px 16px',
+                        borderRadius: '8px', cursor: file.missing ? 'not-allowed' : 'pointer',
+                        background: selectedNodes.includes(file.id) ? 'var(--accent-color)' : 'var(--surface-color)',
+                        color: selectedNodes.includes(file.id) ? '#fff' : 'var(--text-main)',
+                        border: selectedNodes.includes(file.id) ? '2px solid var(--accent-color)' : '2px solid transparent',
+                        opacity: file.missing ? 0.6 : 1,
+                      }}
+                    >
+                      <Icon size={20} color={selectedNodes.includes(file.id) ? '#fff' : color} />
+                      <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{file.name}</span>
+                      <div 
+                        onClick={(e) => toggleFavorite(e, file.id)}
+                        style={{ cursor: 'pointer', padding: '4px' }}
+                      >
+                        <Star size={16} fill={file.isFavorite ? 'gold' : 'transparent'} color={file.isFavorite ? 'gold' : (selectedNodes.includes(file.id) ? '#fff' : 'var(--text-muted)')} />
+                      </div>
+                      <div style={{ width: '80px', textAlign: 'right', fontSize: '13px', color: selectedNodes.includes(file.id) ? 'rgba(255,255,255,0.8)' : 'var(--text-muted)' }}>
+                        {file.size ? (file.size / 1024 / 1024).toFixed(2) + ' MB' : 'N/A'}
+                      </div>
+                      <div 
+                        onClick={e => handleDelete(e, file.id)}
+                        style={{ cursor: 'pointer', padding: '4px', color: selectedNodes.includes(file.id) ? '#fff' : '#EF4444' }}
+                      >
+                        <Trash2 size={16} />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '24px' }}>
               {files.map((file, index) => {
                 const { Icon, color } = getFileIconInfo(file.name);
@@ -1023,6 +1190,13 @@ export default function Dashboard({ library, setLibrary, currentFolderId, setCur
                         <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{file.name}</span>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                           <div 
+                            onClick={(e) => toggleFavorite(e, file.id)}
+                            style={{ cursor: 'pointer', padding: '4px' }}
+                            title="Favorite"
+                          >
+                            <Star size={14} fill={file.isFavorite ? 'gold' : 'transparent'} color={file.isFavorite ? 'gold' : 'var(--text-muted)'} />
+                          </div>
+                          <div 
                             onClick={e => { e.stopPropagation(); setEditingNodeId(file.id); setEditingName(file.name); }}
                             style={{ cursor: 'pointer', opacity: 0.5, padding: '4px' }}
                             title="Rename"
@@ -1044,6 +1218,7 @@ export default function Dashboard({ library, setLibrary, currentFolderId, setCur
                 </div>
               )})}
             </div>
+            )}
           </div>
         )}
 
