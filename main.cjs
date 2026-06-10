@@ -31,7 +31,20 @@ function createWindow() {
   mainWindow.loadFile(path.join(__dirname, 'shell', 'dist', 'index.html'));
 }
 
+const gotTheLock = app.requestSingleInstanceLock();
+
+if (!gotTheLock) {
+  app.quit();
+}
+
 if (gotTheLock) {
+  app.on('second-instance', (event, commandLine, workingDirectory) => {
+    const mainWindow = BrowserWindow.getAllWindows()[0];
+    if (mainWindow) {
+      if (mainWindow.isMinimized()) mainWindow.restore();
+      mainWindow.focus();
+    }
+  });
   app.whenReady().then(() => {
     const musicDir = path.join(app.getPath('userData'), 'music');
     if (!fs.existsSync(musicDir)) {
