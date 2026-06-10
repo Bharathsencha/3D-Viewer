@@ -403,21 +403,36 @@ export default function Dashboard({ library, setLibrary, currentFolderId, setCur
         const fileObj = files[idx];
         const relativePath = fileObj.relativePath;
         
+        const newNodeName = newPath.split(/[/\\]/).pop().replace(/^\d{13}_/, '');
+        const originalName = fileObj.original || newNodeName;
+        
+        let suffix = '';
+        if (newNodeName !== originalName && originalName.includes('.')) {
+            const lastDot = originalName.lastIndexOf('.');
+            const base = originalName.substring(0, lastDot);
+            const newBase = newNodeName.substring(0, newNodeName.lastIndexOf('.'));
+            if (newBase.startsWith(base)) {
+                suffix = newBase.substring(base.length); // e.g. "(1D)"
+            }
+        }
+        
         let targetFolderId = currentFolderId;
 
         if (relativePath && relativePath.includes('/')) {
           const parts = relativePath.split('/');
           parts.pop(); // remove filename
           
+          if (suffix && parts.length > 0) {
+             parts[0] = parts[0] + suffix;
+          }
+          
           for (const part of parts) {
-            // Find if this folder already exists in the current target
             const findFolderInTarget = (nodes, targetId, folderName) => {
               if (!targetId) return nodes.find(n => n.type === 'folder' && n.name === folderName);
               const target = nodes.find(n => n.id === targetId);
               if (target && target.children) {
                  return target.children.find(n => n.type === 'folder' && n.name === folderName);
               }
-              // deeper search
               for (const n of nodes) {
                 if (n.type === 'folder' && n.children) {
                    const found = findFolderInTarget(n.children, targetId, folderName);
@@ -443,7 +458,7 @@ export default function Dashboard({ library, setLibrary, currentFolderId, setCur
         const newNode = {
           id: 'file_' + Date.now() + '_' + idx + '_' + Math.random().toString(36).substr(2, 5),
           type: 'file',
-          name: newPath.split(/[/\\]/).pop().replace(/^\d{13}_/, ''),
+          name: newNodeName,
           path: newPath,
           missing: false
         };
