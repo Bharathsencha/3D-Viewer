@@ -5,6 +5,12 @@ export default function DuplicateManager({ duplicates, isDarkMode, themeStyle, o
   const [currentIndex, setCurrentIndex] = useState(0);
   const [resolutions, setResolutions] = useState({});
   const iframeRef = useRef(null);
+  const leftIframeRef = useRef(null);
+  const rightIframeRef = useRef(null);
+  
+  const [applyToAll, setApplyToAll] = useState(false);
+  const [isComparing, setIsComparing] = useState(false);
+  const [syncCameras, setSyncCameras] = useState(true);
 
   const [appPath, setAppPath] = useState('');
 
@@ -60,34 +66,87 @@ export default function DuplicateManager({ duplicates, isDarkMode, themeStyle, o
           win.OV.app.SwitchTheme(isDarkTheme ? 2 : 1, true);
         }
       } catch (err) {
-        console.error(err);
+        // ignore cross-origin errors if any
       }
     };
 
-    if (iframeRef.current) {
-      iframeRef.current.onload = handleIframeLoad;
-      if (iframeRef.current.contentDocument?.readyState === 'complete') {
-        handleIframeLoad();
+    const injectStyles = () => {
+      if (!isComparing) {
+        handleIframeLoad(iframeRef);
+      } else {
+        handleIframeLoad(leftIframeRef);
+        handleIframeLoad(rightIframeRef);
       }
+    };
+
+    injectStyles();
+    
+    // Also attach to onload
+    if (!isComparing && iframeRef.current) {
+      iframeRef.current.onload = () => handleIframeLoad(iframeRef);
+    } else if (isComparing) {
+      if (leftIframeRef.current) leftIframeRef.current.onload = () => handleIframeLoad(leftIframeRef);
+      if (rightIframeRef.current) rightIframeRef.current.onload = () => handleIframeLoad(rightIframeRef);
     }
-  }, [currentIndex, isDarkMode, themeStyle]);
+  }, [currentIndex, isDarkMode, themeStyle, isComparing]);
+
+  // Sync Cameras Effect
+  useEffect(() => {
+    if (!isComparing || !syncCameras) return;
+    
+    let animationFrameId;
+    const syncLoop = () => {
+      try {
+        const leftWin = leftIframeRef.current?.contentWindow;
+        const rightWin = rightIframeRef.current?.contentWindow;
+        if (leftWin?.OV?.app?.viewer && rightWin?.OV?.app?.viewer) {
+          const leftCamera = leftWin.OV.app.viewer.navigation.GetCamera();
+          const rightNav = rightWin.OV.app.viewer.navigation;
+          const currentRightCam = rightNav.GetCamera();
+          
+          if (
+            leftCamera.eye.x !== currentRightCam.eye.x || 
+            leftCamera.eye.y !== currentRightCam.eye.y || 
+            leftCamera.eye.z !== currentRightCam.eye.z ||
+            leftCamera.center.x !== currentRightCam.center.x
+          ) {
+             rightWin.OV.app.viewer.SetCamera(leftCamera);
+          }
+        }
+      } catch (e) {}
+      animationFrameId = requestAnimationFrame(syncLoop);
+    };
+    syncLoop();
+    return () => cancelAnimationFrame(animationFrameId);
+  }, [isComparing, syncCameras, currentIndex]);
 
   const currentDup = duplicates[currentIndex];
 
   const handleAction = (action) => {
-    setResolutions(prev => ({
-      ...prev,
-      [currentDup.path]: action
-    }));
-    
-    if (currentIndex < duplicates.length - 1) {
-      setCurrentIndex(currentIndex + 1);
+    if (applyToAll) {
+      // Apply this action to all remaining unresolved duplicates
+      const newResolutions = { ...resolutions };
+      for (let i = currentIndex; i < duplicates.length; i++) {
+        newResolutions[duplicates[i].path] = action;
+      }
+      setResolutions(newResolutions);
+      finishResolution(newResolutions);
     } else {
-      // Last one, auto complete
-      finishResolution({
-        ...resolutions,
+      setResolutions(prev => ({
+        ...prev,
         [currentDup.path]: action
-      });
+      }));
+      
+      if (currentIndex < duplicates.length - 1) {
+        setCurrentIndex(currentIndex + 1);
+        setIsComparing(false); // reset view
+      } else {
+        // Last one, auto complete
+        finishResolution({
+          ...resolutions,
+          [currentDup.path]: action
+        });
+      }
     }
   };
 
@@ -241,10 +300,10 @@ export default function DuplicateManager({ duplicates, isDarkMode, themeStyle, o
 
           </div>
 
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '16px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '16px', alignItems: 'center' }}>
              <button
                 disabled={currentIndex === 0}
-                onClick={() => setCurrentIndex(currentIndex - 1)}
+                onClick={() => { setCurrentIndex(currentIndex - 1); setIsComparing(false); }}
                 style={{
                   background: 'none', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '8px 16px',
                   color: currentIndex === 0 ? 'var(--text-secondary)' : 'var(--text-main)', cursor: currentIndex === 0 ? 'not-allowed' : 'pointer',
@@ -253,9 +312,13 @@ export default function DuplicateManager({ duplicates, isDarkMode, themeStyle, o
              >
                Previous
              </button>
+             <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '13px', color: 'var(--text-main)' }}>
+               <input type="checkbox" checked={applyToAll} onChange={e => setApplyToAll(e.target.checked)} />
+               Apply to all remaining
+             </label>
              <button
                 disabled={currentIndex === duplicates.length - 1}
-                onClick={() => setCurrentIndex(currentIndex + 1)}
+                onClick={() => { setCurrentIndex(currentIndex + 1); setIsComparing(false); }}
                 style={{
                   background: 'none', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '8px 16px',
                   color: currentIndex === duplicates.length - 1 ? 'var(--text-secondary)' : 'var(--text-main)', cursor: currentIndex === duplicates.length - 1 ? 'not-allowed' : 'pointer',
@@ -267,15 +330,78 @@ export default function DuplicateManager({ duplicates, isDarkMode, themeStyle, o
           </div>
         </div>
 
-        {/* Right Side - 3D Viewer */}
-        <div style={{ flex: 1, position: 'relative' }}>
-          <iframe
-            key={currentDup.existingPath}
-            ref={iframeRef}
-            src={iframeSrc}
-            style={{ width: '100%', height: '100%', border: 'none' }}
-            title="3D Viewer"
-          />
+        {/* Right Side - 3D Viewer Area */}
+        <div style={{ flex: 1, position: 'relative', background: 'var(--bg-color)', display: 'flex', flexDirection: 'column' }}>
+          
+          {!isComparing ? (
+            <div style={{ flex: 1, position: 'relative' }}>
+              <iframe
+                key={currentDup.existingPath + '_single'}
+                ref={iframeRef}
+                src={iframeSrc}
+                style={{ width: '100%', height: '100%', border: 'none' }}
+                title="3D Viewer"
+              />
+              <div style={{ position: 'absolute', bottom: '24px', left: '50%', transform: 'translateX(-50%)', zIndex: 100 }}>
+                <button
+                  onClick={() => setIsComparing(true)}
+                  style={{
+                    background: 'var(--surface-color)', border: '1px solid var(--border-color)', borderRadius: '24px',
+                    padding: '12px 24px', color: 'var(--text-main)', fontWeight: 600, fontSize: '14px', cursor: 'pointer',
+                    boxShadow: 'var(--shadow-md)', display: 'flex', alignItems: 'center', gap: '8px'
+                  }}
+                >
+                  <Copy size={16} /> View and Compare Both
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+              <div style={{ padding: '12px 24px', background: 'var(--surface-color)', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontWeight: 600, color: 'var(--text-main)', fontSize: '14px' }}>Side-by-Side Comparison</span>
+                <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', color: 'var(--text-main)', cursor: 'pointer' }}>
+                    <input type="checkbox" checked={syncCameras} onChange={e => setSyncCameras(e.target.checked)} />
+                    Sync Cameras
+                  </label>
+                  <button
+                    onClick={() => setIsComparing(false)}
+                    style={{ background: 'transparent', border: 'none', color: 'var(--accent-color)', cursor: 'pointer', fontSize: '13px', fontWeight: 600 }}
+                  >
+                    Exit Compare
+                  </button>
+                </div>
+              </div>
+              <div style={{ flex: 1, display: 'flex' }}>
+                {/* Left side: Existing */}
+                <div style={{ flex: 1, borderRight: '1px solid var(--border-color)', position: 'relative' }}>
+                  <div style={{ position: 'absolute', top: '12px', left: '12px', background: 'rgba(0,0,0,0.5)', color: '#fff', padding: '4px 10px', borderRadius: '4px', fontSize: '12px', zIndex: 10, backdropFilter: 'blur(4px)' }}>
+                    Existing File
+                  </div>
+                  <iframe
+                    key={currentDup.existingPath + '_left'}
+                    ref={leftIframeRef}
+                    src={iframeSrc}
+                    style={{ width: '100%', height: '100%', border: 'none' }}
+                    title="3D Viewer Left"
+                  />
+                </div>
+                {/* Right side: New */}
+                <div style={{ flex: 1, position: 'relative' }}>
+                  <div style={{ position: 'absolute', top: '12px', left: '12px', background: 'rgba(0,0,0,0.5)', color: '#fff', padding: '4px 10px', borderRadius: '4px', fontSize: '12px', zIndex: 10, backdropFilter: 'blur(4px)' }}>
+                    New File
+                  </div>
+                  <iframe
+                    key={currentDup.path + '_right'}
+                    ref={rightIframeRef}
+                    src={`../../build/package/website/index.html#model=file://${currentDup.path}`}
+                    style={{ width: '100%', height: '100%', border: 'none' }}
+                    title="3D Viewer Right"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
