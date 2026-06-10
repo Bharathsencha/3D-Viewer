@@ -19,5 +19,10 @@ contextBridge.exposeInMainWorld('api', {
   getFileSize: (filePath) => ipcRenderer.invoke('fs:stat', filePath),
   getFilePath: (file) => webUtils.getPathForFile(file),
   onScanProgress: (callback) => ipcRenderer.on('scan-progress', (_event, value) => callback(value)),
+  onUploadProgress: (callback) => {
+    const listener = (_event, value) => callback(value);
+    ipcRenderer.on('upload-progress', listener);
+    return () => ipcRenderer.removeListener('upload-progress', listener);
+  },
   getAppPath: () => ipcRenderer.invoke('get-app-path')
 });

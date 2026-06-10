@@ -131,7 +131,10 @@ app.whenReady().then(() => {
   ipcMain.handle('models:checkDuplicates', async (event, filePaths) => {
     const duplicates = [];
     const nonDuplicates = [];
+    let count = 0;
     for (const filePath of filePaths) {
+      count++;
+      event.sender.send('upload-progress', { current: count, total: filePaths.length });
       const fileName = path.basename(filePath);
       const ext = fileName.toLowerCase().split('.').pop();
       if (ext === 'stl' || ext === '3dm') {

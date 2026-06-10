@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useEffect, useRef } from 'react';
-import { Folder, File, ChevronRight, Home, Plus, Upload, Sun, Moon, Cat, Brush, Search, Box, Image, Code, FileBox, Type, Edit2, Trash2, ListFilter } from 'lucide-react';
+import { Folder, File, ChevronRight, Home, Plus, Upload, Sun, Moon, Cat, Brush, Search, Box, Image, Code, FileBox, Type, Edit2, Trash2, ListFilter, Check } from 'lucide-react';
 import Fuse from 'fuse.js';
 import MusicPlayer from './MusicPlayer';
 import ThemeDropdown from './ThemeDropdown';
@@ -16,11 +16,19 @@ export default function Dashboard({ library, setLibrary, currentFolderId, setCur
   const [editingNodeId, setEditingNodeId] = useState(null);
   const [editingName, setEditingName] = useState('');
   const [nodeToDelete, setNodeToDelete] = useState(null);
-  const [sortBy, setSortBy] = useState('newest'); // 'newest' | 'oldest' | 'name-asc' | 'name-desc' | 'size-desc' | 'size-asc'
+  const [sortBy, setSortBy] = useState('newest');
   const [isSortOpen, setIsSortOpen] = useState(false);
   const [selectedNodes, setSelectedNodes] = useState([]);
   const [lastSelectedIndex, setLastSelectedIndex] = useState(null);
+  const [uploadProgress, setUploadProgress] = useState(null);
+  const [isMultiSelectMode, setIsMultiSelectMode] = useState(false);
   const hasFetchedSizes = useRef(false);
+
+  useEffect(() => {
+    if (window.api.onUploadProgress) {
+      return window.api.onUploadProgress(progress => setUploadProgress(progress));
+    }
+  }, []);
 
   useEffect(() => {
     if (!library || hasFetchedSizes.current) return;
@@ -112,20 +120,22 @@ export default function Dashboard({ library, setLibrary, currentFolderId, setCur
 
   const handleNodeClick = (e, node, index) => {
     e.stopPropagation();
-    if (e.ctrlKey || e.metaKey) {
-      setSelectedNodes(prev => 
-        prev.includes(node.id) ? prev.filter(id => id !== node.id) : [...prev, node.id]
-      );
-      setLastSelectedIndex(index);
-    } else if (e.shiftKey && lastSelectedIndex !== null) {
-      const start = Math.min(lastSelectedIndex, index);
-      const end = Math.max(lastSelectedIndex, index);
-      const newSelection = allCurrentItems.slice(start, end + 1).map(n => n.id);
-      setSelectedNodes(newSelection);
+    if (isMultiSelectMode) {
+      if (e.shiftKey && lastSelectedIndex !== null) {
+        const start = Math.min(lastSelectedIndex, index);
+        const end = Math.max(lastSelectedIndex, index);
+        const newSelection = allCurrentItems.slice(start, end + 1).map(n => n.id);
+        const uniqueSelection = Array.from(new Set([...selectedNodes, ...newSelection]));
+        setSelectedNodes(uniqueSelection);
+      } else {
+        setSelectedNodes(prev => 
+          prev.includes(node.id) ? prev.filter(id => id !== node.id) : [...prev, node.id]
+        );
+        setLastSelectedIndex(index);
+      }
     } else {
       setSelectedNodes([node.id]);
       setLastSelectedIndex(index);
-      // Immediately open if not holding ctrl/shift
       if (node.type === 'folder') {
         setCurrentFolderId(node.id);
       } else {
@@ -211,10 +221,18 @@ export default function Dashboard({ library, setLibrary, currentFolderId, setCur
   const confirmDeleteNode = async () => {
     if (nodeToDelete) {
       if (nodeToDelete === 'multiple') {
-        const pathsToDelete = selectedNodes.filter(n => n.type === 'file').map(n => n.path);
+        const pathsToDelete = [];
+        const findPaths = (nodes) => {
+          for (const node of nodes) {
+            if (selectedNodes.includes(node.id) && node.type === 'file') pathsToDelete.push(node.path);
+            if (node.children) findPaths(node.children);
+          }
+        };
+        findPaths(library);
         if (pathsToDelete.length > 0) await window.api.deleteFile(pathsToDelete);
-        setLibrary(deleteNodeFromFolder(selectedNodes.map(n => n.id), library));
+        setLibrary(deleteNodeFromFolder(selectedNodes, library));
         setSelectedNodes([]);
+        setIsMultiSelectMode(false);
       } else {
         const findNode = (nodes, id) => {
           for (const n of nodes) {
@@ -265,6 +283,7 @@ export default function Dashboard({ library, setLibrary, currentFolderId, setCur
         console.error('Failed to process files:', err);
       } finally {
         setIsProcessingFiles(false);
+        setUploadProgress(null);
       }
     }
   };
@@ -318,6 +337,8 @@ export default function Dashboard({ library, setLibrary, currentFolderId, setCur
       
       setLibrary(prev => updateNodeRecursively(prev));
     }
+    
+
 
     if (toKeepBoth.length > 0) {
       await commitAndAddNodes(toKeepBoth, true);
@@ -347,6 +368,7 @@ export default function Dashboard({ library, setLibrary, currentFolderId, setCur
       console.error('Failed to process dropped files:', err);
     } finally {
       setIsProcessingFiles(false);
+      setUploadProgress(null);
     }
   };
 
@@ -398,7 +420,9 @@ export default function Dashboard({ library, setLibrary, currentFolderId, setCur
           background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)', zIndex: 9999, display: 'flex', flexDirection: 'column',
           alignItems: 'center', justifyContent: 'center', color: '#fff'
         }}>
-          <h2 style={{ fontSize: '24px', marginBottom: '24px' }}>Files are being uploaded and processed...</h2>
+          <h2 style={{ fontSize: '24px', marginBottom: '24px' }}>
+            {uploadProgress ? `Processing files... ${uploadProgress.current}/${uploadProgress.total} done` : 'Files are being uploaded and processed...'}
+          </h2>
           <div style={{ width: '40px', height: '40px', border: '4px solid rgba(255,255,255,0.2)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
         </div>
       )}
@@ -406,6 +430,8 @@ export default function Dashboard({ library, setLibrary, currentFolderId, setCur
       {resolvingDuplicates && (
         <DuplicateManager
           duplicates={resolvingDuplicates}
+          isDarkMode={isDarkMode}
+          themeStyle={themeStyle}
           onComplete={handleDuplicateResolutionComplete}
           onCancel={() => {
             setResolvingDuplicates(null);
@@ -721,6 +747,21 @@ export default function Dashboard({ library, setLibrary, currentFolderId, setCur
           </div>
 
           <button 
+            onClick={() => {
+              setIsMultiSelectMode(!isMultiSelectMode);
+              if (isMultiSelectMode) setSelectedNodes([]);
+            }}
+            style={{ 
+              display: 'flex', alignItems: 'center', gap: '8px', 
+              padding: '10px 20px', borderRadius: '24px', 
+              border: '1px solid var(--border-color)', background: isMultiSelectMode ? 'var(--accent-color)' : 'var(--surface-color)', 
+              color: isMultiSelectMode ? '#fff' : 'var(--accent-color)', fontWeight: 600, cursor: 'pointer', boxShadow: 'var(--shadow-sm)',
+              transition: 'all 0.2s'
+            }}
+          >
+            <ListFilter size={18} /> {isMultiSelectMode ? 'Cancel Selection' : 'Select Multiple Files'}
+          </button>
+          <button 
             onClick={handleCreateFolder}
             style={{ 
               display: 'flex', alignItems: 'center', gap: '8px', 
@@ -832,6 +873,7 @@ export default function Dashboard({ library, setLibrary, currentFolderId, setCur
                   key={folder.id} 
                   onClick={(e) => handleNodeClick(e, folder, index)}
                   style={{
+                    position: 'relative',
                     background: selectedNodes.includes(folder.id) ? 'var(--bg-color)' : 'var(--surface-color)',
                     padding: '24px',
                     borderRadius: '16px',
@@ -852,6 +894,11 @@ export default function Dashboard({ library, setLibrary, currentFolderId, setCur
                     e.currentTarget.style.boxShadow = 'var(--shadow-md)';
                   }}
                 >
+                  {selectedNodes.includes(folder.id) && (
+                    <div style={{ position: 'absolute', top: '12px', right: '12px', background: 'var(--accent-color)', borderRadius: '50%', padding: '4px', color: '#fff', zIndex: 10 }}>
+                      <Check size={16} strokeWidth={3} />
+                    </div>
+                  )}
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     {themeStyle === 'cartoon' ? (
                       <svg width="32" height="32" viewBox="0 0 24 24" fill="var(--accent-color)" stroke="var(--border-color)" strokeWidth="2">
@@ -920,6 +967,7 @@ export default function Dashboard({ library, setLibrary, currentFolderId, setCur
                     handleNodeClick(e, file, globalIndex);
                   }}
                   style={{
+                    position: 'relative',
                     background: selectedNodes.includes(file.id) ? 'var(--bg-color)' : 'var(--surface-color)',
                     padding: '24px',
                     borderRadius: '16px',
@@ -943,6 +991,11 @@ export default function Dashboard({ library, setLibrary, currentFolderId, setCur
                     e.currentTarget.style.boxShadow = 'var(--shadow-md)';
                   }}
                 >
+                  {selectedNodes.includes(file.id) && (
+                    <div style={{ position: 'absolute', top: '12px', right: '12px', background: 'var(--accent-color)', borderRadius: '50%', padding: '4px', color: '#fff', zIndex: 10 }}>
+                      <Check size={16} strokeWidth={3} />
+                    </div>
+                  )}
                   {themeStyle === 'cartoon' ? (
                     <svg width="32" height="32" viewBox="0 0 24 24" fill="#ffffff" stroke="var(--border-color)" strokeWidth="2">
                       <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path>
