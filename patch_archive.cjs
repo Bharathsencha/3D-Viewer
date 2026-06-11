@@ -18,15 +18,12 @@ async function extractArchive(archivePath) {
     } else if (ext === '.rar') {
       const { createExtractorFromFile } = require('node-unrar-js');
       const extractor = await createExtractorFromFile({
-        filepath: archivePath
+        filepath: archivePath,
+        targetPath: tempDir
       });
-      const { files } = extractor.extract({ files: (f) => true });
-      for (const file of files) {
-        if (!file.fileHeader.flags.directory) {
-          const outPath = path.join(tempDir, file.fileHeader.name);
-          await fs.promises.mkdir(path.dirname(outPath), { recursive: true });
-          await fs.promises.writeFile(outPath, file.extraction);
-        }
+      const result = extractor.extractor ? extractor.extractor.extract() : extractor.extract();
+      for (const file of result.files) {
+        // Consume iterator to extract files directly to disk
       }
     }
 

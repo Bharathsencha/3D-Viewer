@@ -18,6 +18,7 @@ export default function Dashboard({ library, setLibrary, currentFolderId, setCur
   const [resolvingDuplicates, setResolvingDuplicates] = useState(null);
   const [isLibraryScan, setIsLibraryScan] = useState(false);
   const [libraryDuplicateData, setLibraryDuplicateData] = useState(null);
+  const [archiveModalData, setArchiveModalData] = useState(null);
   const [editingNodeId, setEditingNodeId] = useState(null);
   const [editingName, setEditingName] = useState('');
   const [nodeToDelete, setNodeToDelete] = useState(null);
@@ -573,34 +574,9 @@ export default function Dashboard({ library, setLibrary, currentFolderId, setCur
   };
 
 
-  const handleDrop = async (e) => {
-    e.preventDefault();
-    setIsDragging(false);
-    const droppedFiles = Array.from(e.dataTransfer.files).map(f => window.api.getFilePath(f)).filter(Boolean);
-    if (droppedFiles.length === 0) return;
-
+  const proceedWithImport = async (finalFiles, archiveMappings) => {
     setIsProcessingFiles(true);
     try {
-      let finalFiles = [];
-      let archiveMappings = {};
-      for (const filePath of droppedFiles) {
-        const ext = filePath.split('.').pop().toLowerCase();
-        if (ext === 'zip' || ext === 'rar') {
-          const extracted = await window.api.extractArchive(filePath);
-          for (const item of extracted) {
-            finalFiles.push(item.absolutePath);
-            archiveMappings[item.absolutePath] = item.relativePath;
-          }
-        } else {
-          const scanned = await window.api.scanPath(filePath);
-          for (const item of scanned) {
-            finalFiles.push(item.absolutePath);
-            archiveMappings[item.absolutePath] = item.relativePath;
-          }
-        }
-      }
-      if (finalFiles.length === 0) return setIsProcessingFiles(false);
-
       const result = await window.api.checkDuplicates(finalFiles);
       
       const libraryPaths = new Set();
@@ -640,10 +616,109 @@ export default function Dashboard({ library, setLibrary, currentFolderId, setCur
         await commitAndAddNodes(nonDupsWithPaths, false);
       }
     } catch (err) {
-      console.error('Failed to process dropped files:', err);
+      console.error('Import failed:', err);
     } finally {
       setIsProcessingFiles(false);
       setUploadProgress(null);
+    }
+  };
+
+  const handleArchiveExtractSelection = async (extractFlat) => {
+    if (!archiveModalData) return;
+    const { archiveFiles, currentIndex, accumulatedFiles, accumulatedMappings } = archiveModalData;
+    const currentArchivePath = archiveFiles[currentIndex];
+    
+    let nextAccumulatedFiles = [...accumulatedFiles];
+    let nextAccumulatedMappings = { ...accumulatedMappings };
+
+    if (extractFlat !== null) {
+      setIsProcessingFiles(true);
+      try {
+        const extracted = await window.api.extractArchive(currentArchivePath);
+        const archiveName = currentArchivePath.split(/[/\\]/).pop().split('.').slice(0, -1).join('.');
+        
+        for (const item of extracted) {
+          nextAccumulatedFiles.push(item.absolutePath);
+          if (extractFlat) {
+            // Flatten: just the file name
+            nextAccumulatedMappings[item.absolutePath] = item.absolutePath.split(/[/\\]/).pop();
+          } else {
+            // Preserve tree: archiveName/relativePath
+            nextAccumulatedMappings[item.absolutePath] = archiveName + '/' + item.relativePath;
+          }
+        }
+      } catch (err) {
+        console.error('Failed to extract archive:', err);
+        alert('Failed to extract archive: ' + err.message);
+      }
+    }
+
+    const nextIndex = currentIndex + 1;
+    if (nextIndex < archiveFiles.length) {
+      setArchiveModalData({
+        archiveFiles,
+        currentIndex: nextIndex,
+        accumulatedFiles: nextAccumulatedFiles,
+        accumulatedMappings: nextAccumulatedMappings
+      });
+    } else {
+      setArchiveModalData(null);
+      if (nextAccumulatedFiles.length > 0) {
+        await proceedWithImport(nextAccumulatedFiles, nextAccumulatedMappings);
+      } else {
+        setIsProcessingFiles(false);
+      }
+    }
+  };
+
+  const handleDrop = async (e) => {
+    e.preventDefault();
+    setIsDragging(false);
+    const droppedFiles = Array.from(e.dataTransfer.files).map(f => window.api.getFilePath(f)).filter(Boolean);
+    if (droppedFiles.length === 0) return;
+
+    setIsProcessingFiles(true);
+    try {
+      let normalFiles = [];
+      let archiveFiles = [];
+      for (const filePath of droppedFiles) {
+        const ext = filePath.split('.').pop().toLowerCase();
+        if (ext === 'zip' || ext === 'rar') {
+          archiveFiles.push(filePath);
+        } else {
+          normalFiles.push(filePath);
+        }
+      }
+
+      let accumulatedFiles = [];
+      let accumulatedMappings = {};
+
+      // Scan normal files/folders
+      for (const filePath of normalFiles) {
+        const scanned = await window.api.scanPath(filePath);
+        for (const item of scanned) {
+          accumulatedFiles.push(item.absolutePath);
+          accumulatedMappings[item.absolutePath] = item.relativePath;
+        }
+      }
+
+      if (archiveFiles.length > 0) {
+        setArchiveModalData({
+          archiveFiles,
+          currentIndex: 0,
+          accumulatedFiles,
+          accumulatedMappings
+        });
+      } else {
+        if (accumulatedFiles.length > 0) {
+          await proceedWithImport(accumulatedFiles, accumulatedMappings);
+        } else {
+          setIsProcessingFiles(false);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to process dropped files:', err);
+      setIsProcessingFiles(false);
     }
   };
 
@@ -719,6 +794,68 @@ export default function Dashboard({ library, setLibrary, currentFolderId, setCur
             }
           }}
         />
+      )}
+
+      {archiveModalData && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(0,0,0,0.5)', zIndex: 9999, display: 'flex',
+          alignItems: 'center', justifyContent: 'center'
+        }}>
+          <div style={{
+            background: 'var(--bg-color)', padding: '32px', borderRadius: '16px',
+            width: '500px', maxWidth: '90%', color: 'var(--text-main)',
+            boxShadow: '0 10px 25px rgba(0,0,0,0.2)'
+          }}>
+            <h2 style={{ marginTop: 0, marginBottom: '16px', fontSize: '20px' }}>Import Archive</h2>
+            <p style={{ marginBottom: '24px', color: 'var(--text-muted)', lineHeight: '1.5' }}>
+              How would you like to extract the archive <strong style={{ color: 'var(--text-main)' }}>{archiveModalData.archiveFiles[archiveModalData.currentIndex].split(/[/\\]/).pop()}</strong>?
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <button 
+                onClick={async () => {
+                  await handleArchiveExtractSelection(true); // extract flat
+                }}
+                style={{
+                  padding: '14px 20px', borderRadius: '8px', border: '1px solid var(--border-color)',
+                  background: 'var(--surface-color)', color: 'var(--text-main)', cursor: 'pointer',
+                  fontWeight: 600, textAlign: 'left', display: 'flex', flexDirection: 'column', gap: '4px',
+                  transition: 'all 0.2s'
+                }}
+              >
+                <span>Extract all files here</span>
+                <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 400 }}>All 3D files will be placed directly in the current folder.</span>
+              </button>
+              <button 
+                onClick={async () => {
+                  await handleArchiveExtractSelection(false); // extract to folder name (preserving structure)
+                }}
+                style={{
+                  padding: '14px 20px', borderRadius: '8px', border: '1px solid var(--border-color)',
+                  background: 'var(--surface-color)', color: 'var(--text-main)', cursor: 'pointer',
+                  fontWeight: 600, textAlign: 'left', display: 'flex', flexDirection: 'column', gap: '4px',
+                  transition: 'all 0.2s'
+                }}
+              >
+                <span>Extract to folder name</span>
+                <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 400 }}>Creates a new folder named after the archive and preserves internal directory structure.</span>
+              </button>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '24px' }}>
+              <button 
+                onClick={() => {
+                  handleArchiveExtractSelection(null);
+                }}
+                style={{
+                  padding: '8px 16px', borderRadius: '8px', border: 'none',
+                  background: 'transparent', color: 'var(--text-muted)', cursor: 'pointer', fontWeight: 500
+                }}
+              >
+                Skip Archive
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {libraryDuplicateData && (
