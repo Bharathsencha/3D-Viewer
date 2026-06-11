@@ -17,6 +17,7 @@ export default function Dashboard({ library, setLibrary, currentFolderId, setCur
   const [duplicateData, setDuplicateData] = useState(null);
   const [resolvingDuplicates, setResolvingDuplicates] = useState(null);
   const [isLibraryScan, setIsLibraryScan] = useState(false);
+  const [libraryDuplicateData, setLibraryDuplicateData] = useState(null);
   const [editingNodeId, setEditingNodeId] = useState(null);
   const [editingName, setEditingName] = useState('');
   const [nodeToDelete, setNodeToDelete] = useState(null);
@@ -399,8 +400,7 @@ export default function Dashboard({ library, setLibrary, currentFolderId, setCur
     try {
       const dups = await window.api.scanLibraryDuplicates();
       if (dups && dups.length > 0) {
-        setIsLibraryScan(true);
-        setResolvingDuplicates(dups);
+        setLibraryDuplicateData(dups);
       } else {
         alert("No duplicates found in your library!");
       }
@@ -582,22 +582,62 @@ export default function Dashboard({ library, setLibrary, currentFolderId, setCur
     setIsProcessingFiles(true);
     try {
       let finalFiles = [];
+      let archiveMappings = {};
       for (const filePath of droppedFiles) {
         const ext = filePath.split('.').pop().toLowerCase();
         if (ext === 'zip' || ext === 'rar') {
           const extracted = await window.api.extractArchive(filePath);
-          finalFiles.push(...extracted);
+          for (const item of extracted) {
+            finalFiles.push(item.absolutePath);
+            archiveMappings[item.absolutePath] = item.relativePath;
+          }
         } else {
-          finalFiles.push(filePath);
+          const scanned = await window.api.scanPath(filePath);
+          for (const item of scanned) {
+            finalFiles.push(item.absolutePath);
+            archiveMappings[item.absolutePath] = item.relativePath;
+          }
         }
       }
       if (finalFiles.length === 0) return setIsProcessingFiles(false);
 
       const result = await window.api.checkDuplicates(finalFiles);
-      if (result.duplicates.length > 0) {
-        setDuplicateData(result);
+      
+      const libraryPaths = new Set();
+      const collectPaths = (nodes) => {
+        for (const n of nodes) {
+          if (n.type === 'file') libraryPaths.add(n.path);
+          if (n.children) collectPaths(n.children);
+        }
+      };
+      collectPaths(library || []);
+      
+      const realDuplicates = [];
+      const orphansToDelete = [];
+      for (const dup of result.duplicates) {
+         if (libraryPaths.has(dup.existingPath)) {
+            realDuplicates.push({ ...dup, relativePath: archiveMappings[dup.path] });
+         } else {
+            orphansToDelete.push(dup.existingPath);
+            result.nonDuplicates.push({
+               original: dup.original,
+               path: dup.path,
+               hash: dup.hash,
+               relativePath: archiveMappings[dup.path]
+            });
+         }
+      }
+      
+      if (orphansToDelete.length > 0) {
+         await window.api.deleteFile(orphansToDelete);
+      }
+      
+      const nonDupsWithPaths = result.nonDuplicates.map(nd => ({ ...nd, relativePath: archiveMappings[nd.path] }));
+
+      if (realDuplicates.length > 0) {
+        setDuplicateData({ duplicates: realDuplicates, nonDuplicates: nonDupsWithPaths });
       } else {
-        await commitAndAddNodes(result.nonDuplicates, false);
+        await commitAndAddNodes(nonDupsWithPaths, false);
       }
     } catch (err) {
       console.error('Failed to process dropped files:', err);
@@ -667,14 +707,107 @@ export default function Dashboard({ library, setLibrary, currentFolderId, setCur
           duplicates={resolvingDuplicates}
           isDarkMode={isDarkMode}
           themeStyle={themeStyle}
+          isLibraryScan={isLibraryScan}
           onComplete={handleDuplicateResolutionComplete}
           onCancel={() => {
             setResolvingDuplicates(null);
-            const nonDups = duplicateData.nonDuplicates || [];
-            setDuplicateData(null);
-            if (nonDups.length > 0) commitAndAddNodes(nonDups, false);
+            setIsLibraryScan(false);
+            if (!isLibraryScan && duplicateData) {
+              const nonDups = duplicateData.nonDuplicates || [];
+              setDuplicateData(null);
+              if (nonDups.length > 0) commitAndAddNodes(nonDups, false);
+            }
           }}
         />
+      )}
+
+      {libraryDuplicateData && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(0,0,0,0.5)', zIndex: 9999, display: 'flex',
+          alignItems: 'center', justifyContent: 'center'
+        }}>
+          <div style={{
+            background: 'var(--bg-color)', padding: '32px', borderRadius: '16px',
+            width: '500px', maxWidth: '90%', color: 'var(--text-main)',
+            boxShadow: '0 10px 25px rgba(0,0,0,0.2)'
+          }}>
+            <h2 style={{ marginTop: 0, marginBottom: '16px', fontSize: '20px' }}>Manage Existing Duplicates</h2>
+            <p style={{ marginBottom: '16px', color: 'var(--text-muted)' }}>
+              We found {libraryDuplicateData.length} duplicate file(s) already in your library.
+            </p>
+            <div style={{
+              maxHeight: '150px', overflowY: 'auto', marginBottom: '24px',
+              background: 'var(--bg-secondary)', padding: '12px', borderRadius: '8px'
+            }}>
+              {libraryDuplicateData.map((d, i) => (
+                <div key={i} style={{ marginBottom: '8px', fontSize: '14px' }}>
+                  <strong>{d.original}</strong> <span style={{ color: 'var(--text-muted)', fontSize: '12px' }}>(matches {d.existing})</span>
+                </div>
+              ))}
+            </div>
+            <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+              <button 
+                onClick={() => {
+                  setLibraryDuplicateData(null);
+                }}
+                style={{
+                  padding: '8px 16px', borderRadius: '8px', border: '1px solid var(--border-color)',
+                  background: 'transparent', color: 'var(--text-main)', cursor: 'pointer', fontWeight: 500
+                }}
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={async () => {
+                  const pathsToDelete = libraryDuplicateData.map(d => d.path);
+                  setLibraryDuplicateData(null);
+                  setIsProcessingFiles(true);
+                  try {
+                    await window.api.deleteFile(pathsToDelete);
+                    
+                    const removeNodesByPath = (nodes, paths) => {
+                      return nodes
+                        .filter(n => n.type !== 'file' || !paths.includes(n.path))
+                        .map(n => {
+                          if (n.type === 'folder' && n.children) {
+                            return { ...n, children: removeNodesByPath(n.children, paths) };
+                          }
+                          return n;
+                        });
+                    };
+                    setLibrary(prev => removeNodesByPath(prev, pathsToDelete));
+                    alert(`Successfully deleted ${pathsToDelete.length} duplicate files!`);
+                  } catch (err) {
+                    console.error(err);
+                    alert("Failed to delete duplicate files: " + err.message);
+                  } finally {
+                    setIsProcessingFiles(false);
+                  }
+                }}
+                style={{
+                  padding: '8px 16px', borderRadius: '8px', border: '1px solid #ef4444',
+                  background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', cursor: 'pointer', fontWeight: 600
+                }}
+              >
+                Delete them
+              </button>
+              <button 
+                onClick={() => {
+                  setIsLibraryScan(true);
+                  setResolvingDuplicates(libraryDuplicateData);
+                  setLibraryDuplicateData(null);
+                }}
+                style={{
+                  padding: '8px 16px', borderRadius: '8px', border: 'none',
+                  background: 'var(--accent-color)', color: '#fff', cursor: 'pointer', fontWeight: 500
+                }}
+              >
+                View them
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {duplicateData && !resolvingDuplicates && (

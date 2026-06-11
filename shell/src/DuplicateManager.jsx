@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { ArrowLeft, Check, Copy, Trash2, ArrowRight } from 'lucide-react';
 
-export default function DuplicateManager({ duplicates, isDarkMode, themeStyle, onComplete, onCancel }) {
+export default function DuplicateManager({ duplicates, isDarkMode, themeStyle, isLibraryScan, onComplete, onCancel }) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [resolutions, setResolutions] = useState({});
   const iframeRef = useRef(null);
@@ -260,42 +260,44 @@ export default function DuplicateManager({ duplicates, isDarkMode, themeStyle, o
               style={{
                 padding: '10px 14px', borderRadius: '8px', border: currentAction === 'skip' ? '2px solid var(--accent-color)' : '1px solid var(--border-color)',
                 background: currentAction === 'skip' ? 'var(--accent-color-transparent)' : 'var(--bg-color)',
-                color: 'var(--text-main)', cursor: 'pointer', textAlign: 'left', display: 'flex', alignItems: 'center', justifyContent: 'space-between'
+                color: 'var(--text-main)', cursor: 'pointer', textAlign: 'left', display: 'flex', alignItems: 'center', justifycontent: 'space-between'
               }}
             >
               <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                <span style={{ fontWeight: 600, fontSize: '13px' }}>Skip (Keep Existing)</span>
-                <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Do not import the new file.</span>
+                <span style={{ fontWeight: 600, fontSize: '13px' }}>{isLibraryScan ? 'Delete Duplicate' : 'Skip (Keep Existing)'}</span>
+                <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>{isLibraryScan ? 'Delete this duplicate file.' : 'Do not import the new file.'}</span>
               </div>
               {currentAction === 'skip' && <Check size={16} color="var(--accent-color)" />}
             </button>
 
-            <button
-              onClick={() => handleAction('replace')}
-              style={{
-                padding: '10px 14px', borderRadius: '8px', border: currentAction === 'replace' ? '2px solid #ef4444' : '1px solid var(--border-color)',
-                background: currentAction === 'replace' ? 'rgba(239, 68, 68, 0.1)' : 'var(--bg-color)',
-                color: 'var(--text-main)', cursor: 'pointer', textAlign: 'left', display: 'flex', alignItems: 'center', justifyContent: 'space-between'
-              }}
-            >
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                <span style={{ fontWeight: 600, fontSize: '13px', color: currentAction === 'replace' ? '#ef4444' : 'var(--text-main)' }}>Replace Existing</span>
-                <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Delete old file and use the new one.</span>
-              </div>
-              {currentAction === 'replace' && <Trash2 size={16} color="#ef4444" />}
-            </button>
+            {!isLibraryScan && (
+              <button
+                onClick={() => handleAction('replace')}
+                style={{
+                  padding: '10px 14px', borderRadius: '8px', border: currentAction === 'replace' ? '2px solid #ef4444' : '1px solid var(--border-color)',
+                  background: currentAction === 'replace' ? 'rgba(239, 68, 68, 0.1)' : 'var(--bg-color)',
+                  color: 'var(--text-main)', cursor: 'pointer', textAlign: 'left', display: 'flex', alignItems: 'center', justifycontent: 'space-between'
+                }}
+              >
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                  <span style={{ fontWeight: 600, fontSize: '13px', color: currentAction === 'replace' ? '#ef4444' : 'var(--text-main)' }}>Replace Existing</span>
+                  <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Delete old file and use the new one.</span>
+                </div>
+                {currentAction === 'replace' && <Trash2 size={16} color="#ef4444" />}
+              </button>
+            )}
 
             <button
               onClick={() => handleAction('keep_both')}
               style={{
                 padding: '10px 14px', borderRadius: '8px', border: currentAction === 'keep_both' ? '2px solid #10b981' : '1px solid var(--border-color)',
                 background: currentAction === 'keep_both' ? 'rgba(16, 185, 129, 0.1)' : 'var(--bg-color)',
-                color: 'var(--text-main)', cursor: 'pointer', textAlign: 'left', display: 'flex', alignItems: 'center', justifyContent: 'space-between'
+                color: 'var(--text-main)', cursor: 'pointer', textAlign: 'left', display: 'flex', alignItems: 'center', justifycontent: 'space-between'
               }}
             >
               <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
                 <span style={{ fontWeight: 600, fontSize: '13px', color: currentAction === 'keep_both' ? '#10b981' : 'var(--text-main)' }}>Keep Both</span>
-                <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Import new file alongside the old one.</span>
+                <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>{isLibraryScan ? 'Keep both files in library.' : 'Import new file alongside the old one.'}</span>
               </div>
               {currentAction === 'keep_both' && <Check size={16} color="#10b981" />}
             </button>

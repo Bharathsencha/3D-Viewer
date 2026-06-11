@@ -11,6 +11,7 @@ contextBridge.exposeInMainWorld('api', {
   commitImport: (filesToImport, forceKeep) => ipcRenderer.invoke('models:commitImport', filesToImport, forceKeep),
   getScanStatus: () => ipcRenderer.invoke('models:getScanStatus'),
   openFolder: () => ipcRenderer.invoke('dialog:openFolder'),
+  scanPath: (filePath) => ipcRenderer.invoke('fs:scanPath', filePath),
   readFile: (filePath) => ipcRenderer.invoke('fs:readFile', filePath),
   checkExists: (filePath) => ipcRenderer.invoke('fs:checkExists', filePath),
   saveLibrary: (data) => ipcRenderer.invoke('library:save', data),

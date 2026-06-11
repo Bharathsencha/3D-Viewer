@@ -365,6 +365,44 @@ if (gotTheLock) {
     return result.canceled ? null : result.filePaths[0];
   });
 
+  ipcMain.handle('fs:scanPath', async (event, itemPath) => {
+    const results = [];
+    async function traverse(currentPath, baseParent) {
+      const stats = await fs.promises.stat(currentPath);
+      if (stats.isDirectory()) {
+        const files = await fs.promises.readdir(currentPath);
+        for (const file of files) {
+          await traverse(path.join(currentPath, file), baseParent);
+        }
+      } else {
+        const ext = currentPath.split('.').pop().toLowerCase();
+        const supported = ['3dm', '3ds', '3mf', 'amf', 'bim', 'brep', 'dae', 'fbx', 'fcstd', 'gltf', 'ifc', 'iges', 'step', 'stl', 'obj', 'off', 'ply', 'wrl', 'glb'];
+        if (supported.includes(ext)) {
+          results.push({
+            absolutePath: currentPath,
+            relativePath: path.relative(baseParent, currentPath).replace(/\\/g, '/')
+          });
+        }
+      }
+    }
+    try {
+      const stats = await fs.promises.stat(itemPath);
+      if (stats.isDirectory()) {
+        const parentDir = path.dirname(itemPath);
+        await traverse(itemPath, parentDir);
+      } else {
+        results.push({
+          absolutePath: itemPath,
+          relativePath: path.basename(itemPath)
+        });
+      }
+      return results;
+    } catch (err) {
+      console.error('Failed to scan path:', err);
+      return [];
+    }
+  });
+
   ipcMain.handle('fs:readFile', async (event, filePath) => {
     try {
       const data = await fs.promises.readFile(filePath);
