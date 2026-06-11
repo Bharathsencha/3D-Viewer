@@ -1,25 +1,70 @@
-name: Build
+name: Build and Package Electron App
 
 on:
   push:
-    branches: [ master, dev ]
-  pull_request:
-    branches: [ master, dev ]
+    branches:
+      - main
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   build:
-
-    runs-on: ${{ matrix.os-type }}
-
     strategy:
       matrix:
-        node-version: [18.x, 20.x]
-        os-type: [windows-latest, macos-latest, ubuntu-latest]
+        os: [windows-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
 
     steps:
-    - uses: actions/checkout@v4
-    - uses: actions/setup-node@v4
-      with:
-        node-version: ${{ matrix.node-version }}
-    - run: npm install
-    - run: npm run create_dist
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install Root Dependencies
+        run: npm install
+
+      - name: Install Shell (Frontend) Dependencies
+        run: |
+          cd shell
+          npm install
+
+      - name: Build Shell (Frontend)
+        run: |
+          cd shell
+          npm run build
+
+      - name: Package App (Windows)
+        if: matrix.os == 'windows-latest'
+        run: npx electron-builder --win
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Package App (Linux)
+        if: matrix.os == 'ubuntu-latest'
+        run: npx electron-builder --linux
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload Build Artifacts (Windows)
+        if: matrix.os == 'windows-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: 3d-viewer-windows
+          path: dist/*.exe
+
+      - name: Upload Build Artifacts (Linux)
+        if: matrix.os == 'ubuntu-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: 3d-viewer-linux
+          path: |
+            dist/*.AppImage
+            dist/*.deb

@@ -1,41 +1,63 @@
-const Database = require('better-sqlite3');
+const fs = require('fs');
 const path = require('path');
 const { app } = require('electron');
 
-let db;
+let hashesMap = new Map();
+let dbPath = null;
 
 function initDatabase() {
-  const dbPath = path.join(app.getPath('userData'), 'metadata.db');
-  db = new Database(dbPath);
-  
-  db.exec(`
-    DROP TABLE IF EXISTS hashes;
-    CREATE TABLE IF NOT EXISTS file_hashes (
-      filename TEXT PRIMARY KEY,
-      hash TEXT NOT NULL
-    )
-  `);
+  try {
+    const userData = app.getPath('userData');
+    dbPath = path.join(userData, 'hashes_v2.json');
+    if (fs.existsSync(dbPath)) {
+      const content = fs.readFileSync(dbPath, 'utf8');
+      const data = JSON.parse(content);
+      hashesMap = new Map(Object.entries(data));
+    } else {
+      hashesMap = new Map();
+    }
+  } catch (err) {
+    console.error('Failed to initialize or load hashes_v2.json:', err);
+    hashesMap = new Map();
+  }
+}
+
+function saveDatabase() {
+  if (!dbPath) return;
+  try {
+    const data = Object.fromEntries(hashesMap);
+    fs.writeFileSync(dbPath, JSON.stringify(data, null, 2), 'utf8');
+  } catch (err) {
+    console.error('Failed to save hashes_v2.json:', err);
+  }
 }
 
 function insertHash(hash, filename) {
-  const stmt = db.prepare('INSERT OR REPLACE INTO file_hashes (filename, hash) VALUES (?, ?)');
-  stmt.run(filename, hash);
+  hashesMap.set(filename, hash);
+  saveDatabase();
 }
 
 function getExistingFilenameByHash(hash) {
-  const stmt = db.prepare('SELECT filename FROM file_hashes WHERE hash = ? LIMIT 1');
-  const row = stmt.get(hash);
-  return row ? row.filename : null;
+  for (const [filename, fileHash] of hashesMap.entries()) {
+    if (fileHash === hash) {
+      return filename;
+    }
+  }
+  return null;
 }
 
 function getAllHashedFiles() {
-  const stmt = db.prepare('SELECT filename FROM file_hashes');
-  return stmt.all().map(row => row.filename);
+  return Array.from(hashesMap.keys());
 }
 
 function deleteHash(filename) {
-  const stmt = db.prepare('DELETE FROM file_hashes WHERE filename = ?');
-  stmt.run(filename);
+  if (hashesMap.delete(filename)) {
+    saveDatabase();
+  }
+}
+
+function getHashByFilename(filename) {
+  return hashesMap.get(filename);
 }
 
 module.exports = {
@@ -43,5 +65,6 @@ module.exports = {
   insertHash,
   getExistingFilenameByHash,
   getAllHashedFiles,
-  deleteHash
+  deleteHash,
+  getHashByFilename
 };

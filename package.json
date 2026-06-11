@@ -1,6 +1,6 @@
 {
 	"name": "3d-viewer",
-	"version": "2.1.0",
+	"version": "2.0.6",
 	"description": "Offline 3D Viewer",
 	"author": "Bharath <bharathsencha@duck.com>",
 	"license": "GPL-3.0",
@@ -79,7 +79,6 @@
 	"dependencies": {
 		"@simonwep/pickr": "1.9.0",
 		"adm-zip": "^0.5.17",
-		"better-sqlite3": "^12.10.0",
 		"electron-updater": "^6.8.9",
 		"fflate": "0.8.2",
 		"hash-wasm": "^4.12.0",

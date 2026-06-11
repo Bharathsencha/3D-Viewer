@@ -162,6 +162,46 @@ if (gotTheLock) {
     }
   });
 
+  ipcMain.handle('models:scanLibraryDuplicates', async (event) => {
+    try {
+      const allFiles = await fs.promises.readdir(modelsDir);
+      const targetFiles = allFiles.filter(f => f.toLowerCase().endsWith('.stl') || f.toLowerCase().endsWith('.3dm'));
+      
+      const fileHashMap = new Map();
+      const duplicates = [];
+      
+      for (const file of targetFiles) {
+        const fullPath = path.join(modelsDir, file);
+        try {
+          let hash = db.getHashByFilename(file);
+          if (!hash) {
+            hash = await hashFileAsync(fullPath);
+            db.insertHash(hash, file);
+          }
+          
+          if (fileHashMap.has(hash)) {
+            const existingFile = fileHashMap.get(hash);
+            duplicates.push({
+              original: file.replace(/^\d{13}_/, ''),
+              existing: existingFile.replace(/^\d{13}_/, ''),
+              existingPath: path.join(modelsDir, existingFile),
+              path: fullPath,
+              hash
+            });
+          } else {
+            fileHashMap.set(hash, file);
+          }
+        } catch (err) {
+          console.error(`Failed to process duplicate check for file: ${file}`, err);
+        }
+      }
+      return duplicates;
+    } catch (err) {
+      console.error('Failed to scan library for duplicates:', err);
+      return [];
+    }
+  });
+
   ipcMain.handle('models:checkDuplicates', async (event, filePaths) => {
     const duplicates = [];
     const nonDuplicates = [];

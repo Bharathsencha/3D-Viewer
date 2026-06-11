@@ -4,6 +4,7 @@ contextBridge.exposeInMainWorld('api', {
   openFiles: () => ipcRenderer.invoke('dialog:openFiles'),
   extractArchive: (filePath) => ipcRenderer.invoke('models:extractArchive', filePath),
   generateThumbnail: (filePath) => ipcRenderer.invoke('models:generateThumbnail', filePath),
+  scanLibraryDuplicates: () => ipcRenderer.invoke('models:scanLibraryDuplicates'),
   checkDuplicates: (filePaths) => ipcRenderer.invoke('models:checkDuplicates', filePaths),
   replaceFiles: (filesToReplace) => ipcRenderer.invoke('models:replaceFiles', filesToReplace),
   deleteFile: (filePaths) => ipcRenderer.invoke('models:deleteFile', filePaths),

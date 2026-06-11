@@ -16,6 +16,7 @@ export default function Dashboard({ library, setLibrary, currentFolderId, setCur
   const [isProcessingFiles, setIsProcessingFiles] = useState(false);
   const [duplicateData, setDuplicateData] = useState(null);
   const [resolvingDuplicates, setResolvingDuplicates] = useState(null);
+  const [isLibraryScan, setIsLibraryScan] = useState(false);
   const [editingNodeId, setEditingNodeId] = useState(null);
   const [editingName, setEditingName] = useState('');
   const [nodeToDelete, setNodeToDelete] = useState(null);
@@ -393,6 +394,24 @@ export default function Dashboard({ library, setLibrary, currentFolderId, setCur
     }
   };
 
+  const handleScanDuplicates = async () => {
+    setIsProcessingFiles(true);
+    try {
+      const dups = await window.api.scanLibraryDuplicates();
+      if (dups && dups.length > 0) {
+        setIsLibraryScan(true);
+        setResolvingDuplicates(dups);
+      } else {
+        alert("No duplicates found in your library!");
+      }
+    } catch (err) {
+      console.error('Failed to scan library for duplicates:', err);
+      alert("Failed to scan for duplicates: " + err.message);
+    } finally {
+      setIsProcessingFiles(false);
+    }
+  };
+
   const commitAndAddNodes = async (files, forceKeep) => {
     try {
       const copiedPaths = await window.api.commitImport(files, forceKeep);
@@ -473,6 +492,44 @@ export default function Dashboard({ library, setLibrary, currentFolderId, setCur
   };
 
   const handleDuplicateResolutionComplete = async (results) => {
+    if (isLibraryScan) {
+      const toDeletePaths = [];
+      const libraryPathsToRemove = [];
+
+      for (const r of results) {
+        if (r.action === 'skip') {
+          // Keep Existing, meaning delete the duplicate (r.path)
+          toDeletePaths.push(r.path);
+          libraryPathsToRemove.push(r.path);
+        } else if (r.action === 'replace') {
+          // Replace Existing, meaning delete the existing (r.existingPath)
+          toDeletePaths.push(r.existingPath);
+          libraryPathsToRemove.push(r.existingPath);
+        }
+      }
+
+      if (toDeletePaths.length > 0) {
+        await window.api.deleteFile(toDeletePaths);
+        
+        const removeNodesByPath = (nodes, paths) => {
+          return nodes
+            .filter(n => n.type !== 'file' || !paths.includes(n.path))
+            .map(n => {
+              if (n.type === 'folder' && n.children) {
+                return { ...n, children: removeNodesByPath(n.children, paths) };
+              }
+              return n;
+            });
+        };
+        setLibrary(prev => removeNodesByPath(prev, libraryPathsToRemove));
+      }
+
+      setResolvingDuplicates(null);
+      setIsLibraryScan(false);
+      return;
+    }
+
+    let finalList = [];
     const nonDups = duplicateData?.nonDuplicates || [];
     
     const toKeepBoth = results.filter(r => r.action === 'keep_both');
@@ -502,8 +559,6 @@ export default function Dashboard({ library, setLibrary, currentFolderId, setCur
       setLibrary(prev => updateNodeRecursively(prev));
     }
     
-
-
     if (toKeepBoth.length > 0) {
       finalList = finalList.concat(toKeepBoth.map(f => ({ ...f, forceKeep: true })));
     }
@@ -971,6 +1026,17 @@ export default function Dashboard({ library, setLibrary, currentFolderId, setCur
             }}
           >
             <ListFilter size={18} /> {isMultiSelectMode ? 'Cancel Selection' : 'Select Multiple Files'}
+          </button>
+          <button 
+            onClick={handleScanDuplicates}
+            style={{ 
+              display: 'flex', alignItems: 'center', gap: '8px', 
+              padding: '10px 20px', borderRadius: '24px', 
+              border: '1px solid var(--border-color)', background: 'var(--surface-color)', 
+              color: 'var(--accent-color)', fontWeight: 600, cursor: 'pointer', boxShadow: 'var(--shadow-sm)'
+            }}
+          >
+            <Search size={18} /> Manage Duplicates
           </button>
           <button 
             onClick={handleCreateFolder}
