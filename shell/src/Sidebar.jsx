@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { ChevronRight, ChevronDown, Folder as FolderIcon, File as FileIcon, Search, Edit2, Trash2 } from 'lucide-react';
 
 export default function Sidebar({ library, setLibrary, activeFile, setActiveFile, themeStyle }) {
@@ -70,7 +70,10 @@ export default function Sidebar({ library, setLibrary, activeFile, setActiveFile
         path.forEach(id => {
           foldersToExpand[id] = true;
         });
-        setExpanded(prev => ({ ...prev, ...foldersToExpand }));
+        const timer = setTimeout(() => {
+          setExpanded(prev => ({ ...prev, ...foldersToExpand }));
+        }, 0);
+        return () => clearTimeout(timer);
       }
     }
   }, [activeFile, library]);
@@ -84,7 +87,6 @@ export default function Sidebar({ library, setLibrary, activeFile, setActiveFile
     return nodes.map(node => {
       const isFolder = node.type === 'folder';
       const isExpanded = expanded[node.id];
-      const indent = depth * 16 + 12;
       const isActive = !isFolder && activeFile && activeFile.id === node.id;
 
       return (
@@ -98,15 +100,20 @@ export default function Sidebar({ library, setLibrary, activeFile, setActiveFile
               display: 'flex',
               alignItems: 'center',
               padding: '6px 12px',
-              paddingLeft: `${indent}px`,
+              paddingLeft: '10px',
+              marginLeft: `${depth * 16 + 4}px`,
+              marginRight: '6px',
+              marginTop: '2px',
+              marginBottom: '2px',
+              borderRadius: '8px',
               cursor: node.missing ? 'not-allowed' : 'pointer',
-              background: isActive ? 'var(--hover-color, rgba(0,0,0,0.05))' : 'transparent',
-              color: isActive ? 'var(--selected-text, var(--accent-color))' : (node.missing ? '#EF4444' : 'var(--text-main)'),
+              background: isActive ? 'var(--accent-bg-glow)' : 'transparent',
+              color: isActive ? 'var(--accent-color)' : (node.missing ? '#EF4444' : 'var(--text-main)'),
               fontWeight: isActive ? 600 : 400,
               fontSize: '13px',
               userSelect: 'none',
               opacity: node.missing ? 0.6 : 1,
-              borderLeft: isActive ? '3px solid var(--accent-color)' : '3px solid transparent'
+              transition: 'all 0.15s ease'
             }}
             onMouseEnter={e => {
               if (!isActive && !node.missing) e.currentTarget.style.background = 'var(--hover-color)';
@@ -191,29 +198,32 @@ export default function Sidebar({ library, setLibrary, activeFile, setActiveFile
   };
 
   return (
-    <div style={{
-      width: '260px',
-      height: 'calc(100% - 24px)', // Leave margin top and bottom
-      margin: '12px 12px 12px 16px', // Floating margins
-      background: 'var(--surface-color)',
-      border: '1px solid var(--border-color)', // Full border instead of just right
-      borderRadius: '16px', // Smooth corners
-      boxShadow: 'var(--shadow-md)', // Modern depth
-      display: 'flex',
-      flexDirection: 'column',
-      overflow: 'hidden',
-      flexShrink: 0
-    }}>
+    <div 
+      className="floating-sidebar"
+      style={{
+        width: '260px',
+        height: 'calc(100% - 24px)', // Leave margin top and bottom
+        margin: '12px 12px 12px 16px', // Floating margins
+        display: 'flex',
+        flexDirection: 'column',
+        overflow: 'hidden',
+        flexShrink: 0
+      }}
+    >
       <div style={{ padding: '16px', borderBottom: '1px solid var(--border-color)' }}>
         <div style={{ 
-          background: 'var(--bg-color)', border: '1px solid var(--border-color)', borderRadius: '6px', 
-          display: 'flex', alignItems: 'center', padding: '6px 12px', gap: '8px'
-        }}>
+          background: 'var(--bg-color)', border: '1px solid var(--border-color)', borderRadius: '12px', 
+          display: 'flex', alignItems: 'center', padding: '6px 12px', gap: '8px',
+          boxShadow: 'var(--shadow-sm)', transition: 'all 0.2s'
+        }}
+        onFocusCapture={e => e.currentTarget.style.borderColor = 'var(--accent-color)'}
+        onBlurCapture={e => e.currentTarget.style.borderColor = 'var(--border-color)'}
+        >
           <Search size={14} color="var(--text-muted)" />
           <input 
             type="text" 
             placeholder="Search..." 
-            style={{ border: 'none', background: 'transparent', outline: 'none', fontSize: '13px', width: '100%', color: 'var(--text-main)' }}
+            style={{ border: 'none', background: 'transparent', outline: 'none', fontSize: '13px', width: '100%', color: 'var(--text-main)', fontFamily: 'inherit' }}
           />
         </div>
       </div>
@@ -222,15 +232,15 @@ export default function Sidebar({ library, setLibrary, activeFile, setActiveFile
       </div>
 
       {nodeToDelete && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
           <div style={{ background: 'var(--surface-color)', padding: '24px', borderRadius: '12px', width: '320px', boxShadow: 'var(--shadow-lg)' }}>
-            <h3 style={{ margin: '0 0 16px 0', color: 'var(--text-main)' }}>Delete Item?</h3>
+            <h3 style={{ margin: '0 0 16px 0', color: 'var(--text-main)' }}>Delete Design?</h3>
             <p style={{ margin: '0 0 24px 0', color: 'var(--text-muted)', fontSize: '14px', lineHeight: 1.5 }}>
-              Are you sure you want to remove this item from the library? This action cannot be undone.
+              Are you sure you want to permanently delete this? It will be removed from your computer and library.
             </p>
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
               <button onClick={() => setNodeToDelete(null)} style={{ padding: '6px 12px', background: 'transparent', border: 'none', cursor: 'pointer', fontWeight: 600, color: 'var(--text-muted)' }}>Cancel</button>
-              <button onClick={confirmDeleteNode} style={{ padding: '6px 16px', background: '#EF4444', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 600 }}>Delete</button>
+              <button onClick={confirmDeleteNode} style={{ padding: '6px 16px', background: '#EF4444', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 600 }}>Delete Permanently</button>
             </div>
           </div>
         </div>

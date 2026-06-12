@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { ArrowLeft, Check, Copy, Trash2, ArrowRight } from 'lucide-react';
 
 export default function DuplicateManager({ duplicates, isDarkMode, themeStyle, isLibraryScan, onComplete, onCancel }) {
@@ -12,19 +12,13 @@ export default function DuplicateManager({ duplicates, isDarkMode, themeStyle, i
   const [isComparing, setIsComparing] = useState(false);
   const [syncCameras, setSyncCameras] = useState(true);
 
-  const [appPath, setAppPath] = useState('');
-
-  useEffect(() => {
-    window.api.getAppPath().then(setAppPath);
-  }, []);
-
   useEffect(() => {
     const handleIframeLoad = (ref) => {
       try {
         const doc = ref.current?.contentDocument;
         const win = ref.current?.contentWindow;
         
-        if (!win || !win.OV || !win.OV.app) {
+        if (!win || !win.OV || !win.OV.app || !win.OV.app.viewer) {
           setTimeout(() => handleIframeLoad(ref), 50);
           return;
         }
@@ -61,12 +55,19 @@ export default function DuplicateManager({ duplicates, isDarkMode, themeStyle, i
           doc.head.appendChild(style);
         }
         
-        if (win && win.OV && win.OV.app) {
+        if (win && win.OV && win.OV.app && win.OV.app.viewer) {
           const isDarkTheme = isDarkMode || themeStyle === 'gta' || themeStyle === 'retro';
           win.OV.app.SwitchTheme(isDarkTheme ? 2 : 1, true);
+          
+          // Set background color of 3D canvas to match our application surface
+          const r = isDarkTheme ? 15 : 248; // #0f111a or #f8fafc
+          const g = isDarkTheme ? 17 : 250;
+          const b = isDarkTheme ? 26 : 252;
+          win.OV.app.settings.backgroundColor = { r, g, b, a: 255 };
+          win.OV.app.viewer.SetBackgroundColor(win.OV.app.settings.backgroundColor);
         }
-      } catch (err) {
-        // ignore cross-origin errors if any
+      } catch (e) {
+        console.error('Frame style injection failed:', e);
       }
     };
 
@@ -116,7 +117,9 @@ export default function DuplicateManager({ duplicates, isDarkMode, themeStyle, i
              rightWin.OV.app.viewer.SetCamera(leftCamera.Clone());
           }
         }
-      } catch (e) {}
+      } catch {
+        // ignore camera sync errors
+      }
       animationFrameId = requestAnimationFrame(syncLoop);
     };
     syncLoop();
@@ -220,16 +223,16 @@ export default function DuplicateManager({ duplicates, isDarkMode, themeStyle, i
         }}>
           
           <div>
-            <h3 style={{ margin: '0 0 16px 0', fontSize: '18px', color: 'var(--text-main)' }}>Identical Geometry Detected</h3>
+            <h3 style={{ margin: '0 0 16px 0', fontSize: '18px', color: 'var(--text-main)' }}>Duplicate Design Found</h3>
             <p style={{ margin: 0, fontSize: '14px', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
-              The file you are trying to upload has the exact same geometry (3D data) as an existing file in your library.
+              The 3D model you are importing is exactly the same as one already in your library.
             </p>
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
             <div style={{ background: 'var(--bg-color)', padding: '12px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
               <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <Check size={12} color="var(--accent-color)" /> Existing File
+                <Check size={12} color="var(--accent-color)" /> Original (In Library)
               </div>
               <div style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-main)', wordBreak: 'break-all' }}>
                 {currentDup.existing.replace(/^\d{13}_/, '')}
@@ -241,7 +244,7 @@ export default function DuplicateManager({ duplicates, isDarkMode, themeStyle, i
 
             <div style={{ background: 'var(--bg-color)', padding: '12px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
               <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <Copy size={12} color="#f59e0b" /> New File
+                <Copy size={12} color="#f59e0b" /> Duplicate (Importing)
               </div>
               <div style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-main)', wordBreak: 'break-all' }}>
                 {currentDup.original}
@@ -260,12 +263,12 @@ export default function DuplicateManager({ duplicates, isDarkMode, themeStyle, i
               style={{
                 padding: '10px 14px', borderRadius: '8px', border: currentAction === 'skip' ? '2px solid var(--accent-color)' : '1px solid var(--border-color)',
                 background: currentAction === 'skip' ? 'var(--accent-color-transparent)' : 'var(--bg-color)',
-                color: 'var(--text-main)', cursor: 'pointer', textAlign: 'left', display: 'flex', alignItems: 'center', justifycontent: 'space-between'
+                color: 'var(--text-main)', cursor: 'pointer', textAlign: 'left', display: 'flex', alignItems: 'center', justifyContent: 'space-between'
               }}
             >
               <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                <span style={{ fontWeight: 600, fontSize: '13px' }}>{isLibraryScan ? 'Delete Duplicate' : 'Skip (Keep Existing)'}</span>
-                <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>{isLibraryScan ? 'Delete this duplicate file.' : 'Do not import the new file.'}</span>
+                <span style={{ fontWeight: 600, fontSize: '13px' }}>{isLibraryScan ? 'Delete Duplicate' : "Don't Add (Keep Original)"}</span>
+                <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>{isLibraryScan ? 'Delete this duplicate file.' : 'Skip importing the new file.'}</span>
               </div>
               {currentAction === 'skip' && <Check size={16} color="var(--accent-color)" />}
             </button>
@@ -276,12 +279,12 @@ export default function DuplicateManager({ duplicates, isDarkMode, themeStyle, i
                 style={{
                   padding: '10px 14px', borderRadius: '8px', border: currentAction === 'replace' ? '2px solid #ef4444' : '1px solid var(--border-color)',
                   background: currentAction === 'replace' ? 'rgba(239, 68, 68, 0.1)' : 'var(--bg-color)',
-                  color: 'var(--text-main)', cursor: 'pointer', textAlign: 'left', display: 'flex', alignItems: 'center', justifycontent: 'space-between'
+                  color: 'var(--text-main)', cursor: 'pointer', textAlign: 'left', display: 'flex', alignItems: 'center', justifyContent: 'space-between'
                 }}
               >
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                  <span style={{ fontWeight: 600, fontSize: '13px', color: currentAction === 'replace' ? '#ef4444' : 'var(--text-main)' }}>Replace Existing</span>
-                  <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Delete old file and use the new one.</span>
+                  <span style={{ fontWeight: 600, fontSize: '13px', color: currentAction === 'replace' ? '#ef4444' : 'var(--text-main)' }}>Replace Original</span>
+                  <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Delete the original file and import the new one instead.</span>
                 </div>
                 {currentAction === 'replace' && <Trash2 size={16} color="#ef4444" />}
               </button>
@@ -292,12 +295,12 @@ export default function DuplicateManager({ duplicates, isDarkMode, themeStyle, i
               style={{
                 padding: '10px 14px', borderRadius: '8px', border: currentAction === 'keep_both' ? '2px solid #10b981' : '1px solid var(--border-color)',
                 background: currentAction === 'keep_both' ? 'rgba(16, 185, 129, 0.1)' : 'var(--bg-color)',
-                color: 'var(--text-main)', cursor: 'pointer', textAlign: 'left', display: 'flex', alignItems: 'center', justifycontent: 'space-between'
+                color: 'var(--text-main)', cursor: 'pointer', textAlign: 'left', display: 'flex', alignItems: 'center', justifyContent: 'space-between'
               }}
             >
               <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                <span style={{ fontWeight: 600, fontSize: '13px', color: currentAction === 'keep_both' ? '#10b981' : 'var(--text-main)' }}>Keep Both</span>
-                <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>{isLibraryScan ? 'Keep both files in library.' : 'Import new file alongside the old one.'}</span>
+                <span style={{ fontWeight: 600, fontSize: '13px', color: currentAction === 'keep_both' ? '#10b981' : 'var(--text-main)' }}>Keep Both Files</span>
+                <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>{isLibraryScan ? 'Keep both files in library.' : 'Import the new file alongside the original.'}</span>
               </div>
               {currentAction === 'keep_both' && <Check size={16} color="#10b981" />}
             </button>
@@ -336,10 +339,20 @@ export default function DuplicateManager({ duplicates, isDarkMode, themeStyle, i
         </div>
 
         {/* Right Side - 3D Viewer Area */}
-        <div style={{ flex: 1, position: 'relative', background: 'var(--bg-color)', display: 'flex', flexDirection: 'column' }}>
+        <div style={{ flex: 1, position: 'relative', background: 'var(--bg-color)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
           
           {!isComparing ? (
-            <div style={{ flex: 1, position: 'relative' }}>
+            <div style={{ 
+              flex: 1, 
+              position: 'relative',
+              height: 'calc(100% - 24px)',
+              margin: '12px 16px 12px 12px',
+              background: 'var(--surface-color)',
+              border: '1px solid var(--border-color)',
+              borderRadius: '16px',
+              boxShadow: 'var(--shadow-md)',
+              overflow: 'hidden'
+            }}>
               <iframe
                 key={currentDup.existingPath + '_single'}
                 ref={iframeRef}
@@ -353,15 +366,29 @@ export default function DuplicateManager({ duplicates, isDarkMode, themeStyle, i
                   style={{
                     background: 'var(--surface-color)', border: '1px solid var(--border-color)', borderRadius: '24px',
                     padding: '12px 24px', color: 'var(--text-main)', fontWeight: 600, fontSize: '14px', cursor: 'pointer',
-                    boxShadow: 'var(--shadow-md)', display: 'flex', alignItems: 'center', gap: '8px'
+                    boxShadow: 'var(--shadow-md)', display: 'flex', alignItems: 'center', gap: '8px',
+                    transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)'
                   }}
+                  onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-2px)'}
+                  onMouseLeave={e => e.currentTarget.style.transform = 'none'}
                 >
                   <Copy size={16} /> View and Compare Both
                 </button>
               </div>
             </div>
           ) : (
-            <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+            <div style={{ 
+              flex: 1, 
+              display: 'flex', 
+              flexDirection: 'column',
+              height: 'calc(100% - 24px)',
+              margin: '12px 16px 12px 12px',
+              background: 'var(--surface-color)',
+              border: '1px solid var(--border-color)',
+              borderRadius: '16px',
+              boxShadow: 'var(--shadow-md)',
+              overflow: 'hidden'
+            }}>
               <div style={{ padding: '12px 24px', background: 'var(--surface-color)', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span style={{ fontWeight: 600, color: 'var(--text-main)', fontSize: '14px' }}>Side-by-Side Comparison</span>
                 <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
@@ -380,7 +407,7 @@ export default function DuplicateManager({ duplicates, isDarkMode, themeStyle, i
               <div style={{ flex: 1, display: 'flex' }}>
                 {/* Left side: Existing */}
                 <div style={{ flex: 1, borderRight: '1px solid var(--border-color)', position: 'relative' }}>
-                  <div style={{ position: 'absolute', top: '12px', left: '12px', background: 'rgba(0,0,0,0.5)', color: '#fff', padding: '4px 10px', borderRadius: '4px', fontSize: '12px', zIndex: 10, backdropFilter: 'blur(4px)' }}>
+                  <div style={{ position: 'absolute', top: '12px', left: '12px', background: 'rgba(0,0,0,0.6)', color: '#fff', padding: '4px 10px', borderRadius: '4px', fontSize: '12px', zIndex: 10, backdropFilter: 'blur(4px)' }}>
                     Existing File
                   </div>
                   <iframe
@@ -393,7 +420,7 @@ export default function DuplicateManager({ duplicates, isDarkMode, themeStyle, i
                 </div>
                 {/* Right side: New */}
                 <div style={{ flex: 1, position: 'relative' }}>
-                  <div style={{ position: 'absolute', top: '12px', left: '12px', background: 'rgba(0,0,0,0.5)', color: '#fff', padding: '4px 10px', borderRadius: '4px', fontSize: '12px', zIndex: 10, backdropFilter: 'blur(4px)' }}>
+                  <div style={{ position: 'absolute', top: '12px', left: '12px', background: 'rgba(0,0,0,0.6)', color: '#fff', padding: '4px 10px', borderRadius: '4px', fontSize: '12px', zIndex: 10, backdropFilter: 'blur(4px)' }}>
                     New File
                   </div>
                   <iframe

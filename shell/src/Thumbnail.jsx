@@ -1,4 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
+
+const thumbnailCache = new Map();
 
 export default function Thumbnail({ file, defaultIcon }) {
   const [thumbnailUrl, setThumbnailUrl] = useState(null);
@@ -7,14 +9,25 @@ export default function Thumbnail({ file, defaultIcon }) {
   useEffect(() => {
     let isMounted = true;
     const fetchThumbnail = async () => {
+      if (thumbnailCache.has(file.path)) {
+        if (isMounted) {
+          setThumbnailUrl(thumbnailCache.get(file.path));
+          setIsLoading(false);
+        }
+        return;
+      }
+
       setIsLoading(true);
       try {
         const thumbPath = await window.api.generateThumbnail(file.path);
         if (isMounted && thumbPath) {
-          if (thumbPath.startsWith('data:image')) {
-            setThumbnailUrl(thumbPath);
-          } else {
-            setThumbnailUrl('file://' + thumbPath);
+          let url = thumbPath;
+          if (!thumbPath.startsWith('data:image')) {
+            url = 'file://' + thumbPath;
+          }
+          thumbnailCache.set(file.path, url);
+          if (isMounted) {
+            setThumbnailUrl(url);
           }
         }
       } catch (err) {

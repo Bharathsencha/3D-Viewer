@@ -1,5 +1,5 @@
-import React, { useMemo, useState, useEffect, useRef } from 'react';
-import { Folder, File, ChevronRight, Home, Plus, Upload, Sun, Moon, Cat, Brush, Search, Box, Image, Code, FileBox, Type, Edit2, Trash2, ListFilter, Check, Star, LayoutGrid, List } from 'lucide-react';
+import { useMemo, useState, useEffect, useRef, Fragment } from 'react';
+import { Folder, File, ChevronRight, Home, Plus, Upload, Sun, Moon, Search, Box, Edit2, Trash2, ListFilter, Check, Star, LayoutGrid, List, FileBox, Code, Image } from 'lucide-react';
 import Fuse from 'fuse.js';
 
 import ThemeDropdown from './ThemeDropdown';
@@ -8,7 +8,7 @@ import VirtualFileList from './VirtualFileList';
 import VirtualFileGrid from './VirtualFileGrid';
 import FilterDropdown from './FilterDropdown';
 
-export default function Dashboard({ library, setLibrary, currentFolderId, setCurrentFolderId, setActiveFile, isDarkMode, setIsDarkMode, themeStyle, setThemeStyle, gtaTheme, setGtaTheme, isCommunistSpedUp, setIsCommunistSpedUp, isMilesMorales, setIsMilesMorales, isSpiderVerse, setIsSpiderVerse, isUssrTheme, setIsUssrTheme, isUssrAlt, setIsUssrAlt }) {
+export default function Dashboard({ library, setLibrary, currentFolderId, setCurrentFolderId, setActiveFile, isDarkMode, setIsDarkMode, themeStyle, setThemeStyle }) {
   const [showPrompt, setShowPrompt] = useState(false);
   const [newFolderName, setNewFolderName] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
@@ -32,6 +32,25 @@ export default function Dashboard({ library, setLibrary, currentFolderId, setCur
   const [filterExt, setFilterExt] = useState('all');
   const [viewMode, setViewMode] = useState('grid');
   const hasFetchedSizes = useRef(false);
+  const sortDropdownRef = useRef(null);
+  const [notification, setNotification] = useState(null); // { message: '', type: 'success' | 'info' | 'error' }
+
+  useEffect(() => {
+    if (notification) {
+      const timer = setTimeout(() => setNotification(null), 4000);
+      return () => clearTimeout(timer);
+    }
+  }, [notification]);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (sortDropdownRef.current && !sortDropdownRef.current.contains(event.target)) {
+        setIsSortOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   useEffect(() => {
     if (window.api.onUploadProgress) {
@@ -129,11 +148,14 @@ export default function Dashboard({ library, setLibrary, currentFolderId, setCur
 
   const folders = sortNodes(baseNodes.filter(n => n.type === 'folder'));
   const files = sortNodes(baseNodes.filter(n => n.type === 'file'));
-  const allCurrentItems = [...folders, ...files];
+  const allCurrentItems = useMemo(() => [...folders, ...files], [folders, files]);
 
   useEffect(() => {
-    setSelectedNodes([]);
-    setLastSelectedIndex(null);
+    const timer = setTimeout(() => {
+      setSelectedNodes([]);
+      setLastSelectedIndex(null);
+    }, 0);
+    return () => clearTimeout(timer);
   }, [currentFolderId, searchQuery]);
 
   useEffect(() => {
@@ -403,11 +425,11 @@ export default function Dashboard({ library, setLibrary, currentFolderId, setCur
       if (dups && dups.length > 0) {
         setLibraryDuplicateData(dups);
       } else {
-        alert("No duplicates found in your library!");
+        setNotification({ message: "No duplicates found in your library!", type: 'success' });
       }
     } catch (err) {
       console.error('Failed to scan library for duplicates:', err);
-      alert("Failed to scan for duplicates: " + err.message);
+      setNotification({ message: "Failed to scan for duplicates: " + err.message, type: 'error' });
     } finally {
       setIsProcessingFiles(false);
     }
@@ -488,7 +510,7 @@ export default function Dashboard({ library, setLibrary, currentFolderId, setCur
       setLibrary(newLib);
     } catch (err) {
       console.error('Failed to commit import:', err);
-      alert('Failed to commit import: ' + err.message);
+      setNotification({ message: 'Failed to add designs: ' + err.message, type: 'error' });
     }
   };
 
@@ -649,7 +671,7 @@ export default function Dashboard({ library, setLibrary, currentFolderId, setCur
         }
       } catch (err) {
         console.error('Failed to extract archive:', err);
-        alert('Failed to extract archive: ' + err.message);
+        setNotification({ message: 'Failed to unpack Zip: ' + err.message, type: 'error' });
       }
     }
 
@@ -743,8 +765,8 @@ export default function Dashboard({ library, setLibrary, currentFolderId, setCur
   return (
     <div 
       style={{ 
-        flex: 1, display: 'flex', flexDirection: 'column', height: '100%', overflowY: 'auto', padding: '40px 60px',
-        position: 'relative'
+        flex: 1, display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden',
+        position: 'relative', background: 'var(--bg-color)'
       }}
       onClick={() => setSelectedNodes([])}
       onDrop={handleDrop} 
@@ -767,13 +789,42 @@ export default function Dashboard({ library, setLibrary, currentFolderId, setCur
       {isProcessingFiles && (
         <div style={{
           position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-          background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)', zIndex: 9999, display: 'flex', flexDirection: 'column',
-          alignItems: 'center', justifyContent: 'center', color: '#fff'
+          background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)', zIndex: 9999, display: 'flex',
+          alignItems: 'center', justifyContent: 'center'
         }}>
-          <h2 style={{ fontSize: '24px', marginBottom: '24px' }}>
-            {uploadProgress ? `Processing files... ${uploadProgress.current}/${uploadProgress.total} done` : 'Files are being uploaded and processed...'}
-          </h2>
-          <div style={{ width: '40px', height: '40px', border: '4px solid rgba(255,255,255,0.2)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
+          <div style={{
+            background: 'var(--surface-color)',
+            padding: '40px 48px',
+            borderRadius: '20px',
+            boxShadow: 'var(--shadow-lg)',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: '24px',
+            border: '1px solid var(--border-color)',
+            maxWidth: '90%',
+            width: '420px',
+            textAlign: 'center'
+          }}>
+            <div style={{ 
+              width: '48px', 
+              height: '48px', 
+              border: '4px solid var(--accent-bg-glow)', 
+              borderTopColor: 'var(--accent-color)', 
+              borderRadius: '50%', 
+              animation: 'spin 1s linear infinite' 
+            }} />
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <h3 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text-main)', margin: 0 }}>
+                {uploadProgress ? 'Adding Designs...' : 'Preparing Designs...'}
+              </h3>
+              <p style={{ fontSize: '14px', color: 'var(--text-muted)', margin: 0, lineHeight: 1.5 }}>
+                {uploadProgress 
+                  ? `Completed ${uploadProgress.current} of ${uploadProgress.total} files` 
+                  : 'Reading design details. Please wait...'}
+              </p>
+            </div>
+          </div>
         </div>
       )}
 
@@ -799,7 +850,7 @@ export default function Dashboard({ library, setLibrary, currentFolderId, setCur
       {archiveModalData && (
         <div style={{
           position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-          background: 'rgba(0,0,0,0.5)', zIndex: 9999, display: 'flex',
+          background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(8px)', zIndex: 9999, display: 'flex',
           alignItems: 'center', justifyContent: 'center'
         }}>
           <div style={{
@@ -807,9 +858,9 @@ export default function Dashboard({ library, setLibrary, currentFolderId, setCur
             width: '500px', maxWidth: '90%', color: 'var(--text-main)',
             boxShadow: '0 10px 25px rgba(0,0,0,0.2)'
           }}>
-            <h2 style={{ marginTop: 0, marginBottom: '16px', fontSize: '20px' }}>Import Archive</h2>
+            <h2 style={{ marginTop: 0, marginBottom: '16px', fontSize: '20px' }}>Import Compressed File (Zip)</h2>
             <p style={{ marginBottom: '24px', color: 'var(--text-muted)', lineHeight: '1.5' }}>
-              How would you like to extract the archive <strong style={{ color: 'var(--text-main)' }}>{archiveModalData.archiveFiles[archiveModalData.currentIndex].split(/[/\\]/).pop()}</strong>?
+              How would you like to open the Zip file <strong style={{ color: 'var(--text-main)' }}>{archiveModalData.archiveFiles[archiveModalData.currentIndex].split(/[/\\]/).pop()}</strong>?
             </p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               <button 
@@ -823,8 +874,8 @@ export default function Dashboard({ library, setLibrary, currentFolderId, setCur
                   transition: 'all 0.2s'
                 }}
               >
-                <span>Extract all files here</span>
-                <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 400 }}>All 3D files will be placed directly in the current folder.</span>
+                <span>Unpack files in current folder</span>
+                <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 400 }}>All designs inside the zip will be added directly to this folder.</span>
               </button>
               <button 
                 onClick={async () => {
@@ -837,8 +888,8 @@ export default function Dashboard({ library, setLibrary, currentFolderId, setCur
                   transition: 'all 0.2s'
                 }}
               >
-                <span>Extract to folder name</span>
-                <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 400 }}>Creates a new folder named after the archive and preserves internal directory structure.</span>
+                <span>Unpack to a new folder</span>
+                <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 400 }}>Create a new folder named after the zip file to keep the designs organized.</span>
               </button>
             </div>
             <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '24px' }}>
@@ -851,7 +902,7 @@ export default function Dashboard({ library, setLibrary, currentFolderId, setCur
                   background: 'transparent', color: 'var(--text-muted)', cursor: 'pointer', fontWeight: 500
                 }}
               >
-                Skip Archive
+                Skip Zip
               </button>
             </div>
           </div>
@@ -861,7 +912,7 @@ export default function Dashboard({ library, setLibrary, currentFolderId, setCur
       {libraryDuplicateData && (
         <div style={{
           position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-          background: 'rgba(0,0,0,0.5)', zIndex: 9999, display: 'flex',
+          background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(8px)', zIndex: 9999, display: 'flex',
           alignItems: 'center', justifyContent: 'center'
         }}>
           <div style={{
@@ -869,9 +920,9 @@ export default function Dashboard({ library, setLibrary, currentFolderId, setCur
             width: '500px', maxWidth: '90%', color: 'var(--text-main)',
             boxShadow: '0 10px 25px rgba(0,0,0,0.2)'
           }}>
-            <h2 style={{ marginTop: 0, marginBottom: '16px', fontSize: '20px' }}>Manage Existing Duplicates</h2>
+            <h2 style={{ marginTop: 0, marginBottom: '16px', fontSize: '20px' }}>Duplicate Designs in Library</h2>
             <p style={{ marginBottom: '16px', color: 'var(--text-muted)' }}>
-              We found {libraryDuplicateData.length} duplicate file(s) already in your library.
+              We found {libraryDuplicateData.length} duplicate design(s) already saved in your library.
             </p>
             <div style={{
               maxHeight: '150px', overflowY: 'auto', marginBottom: '24px',
@@ -893,7 +944,7 @@ export default function Dashboard({ library, setLibrary, currentFolderId, setCur
                   background: 'transparent', color: 'var(--text-main)', cursor: 'pointer', fontWeight: 500
                 }}
               >
-                Cancel
+                Close
               </button>
               <button 
                 onClick={async () => {
@@ -914,10 +965,10 @@ export default function Dashboard({ library, setLibrary, currentFolderId, setCur
                         });
                     };
                     setLibrary(prev => removeNodesByPath(prev, pathsToDelete));
-                    alert(`Successfully deleted ${pathsToDelete.length} duplicate files!`);
+                    setNotification({ message: `Successfully cleaned up ${pathsToDelete.length} duplicate designs!`, type: 'success' });
                   } catch (err) {
                     console.error(err);
-                    alert("Failed to delete duplicate files: " + err.message);
+                    setNotification({ message: "Failed to delete duplicates: " + err.message, type: 'error' });
                   } finally {
                     setIsProcessingFiles(false);
                   }
@@ -927,7 +978,7 @@ export default function Dashboard({ library, setLibrary, currentFolderId, setCur
                   background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', cursor: 'pointer', fontWeight: 600
                 }}
               >
-                Delete them
+                Clean Up Duplicates
               </button>
               <button 
                 onClick={() => {
@@ -940,7 +991,7 @@ export default function Dashboard({ library, setLibrary, currentFolderId, setCur
                   background: 'var(--accent-color)', color: '#fff', cursor: 'pointer', fontWeight: 500
                 }}
               >
-                View them
+                Review Each File
               </button>
             </div>
           </div>
@@ -950,7 +1001,7 @@ export default function Dashboard({ library, setLibrary, currentFolderId, setCur
       {duplicateData && !resolvingDuplicates && (
         <div style={{
           position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-          background: 'rgba(0,0,0,0.5)', zIndex: 9999, display: 'flex',
+          background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(8px)', zIndex: 9999, display: 'flex',
           alignItems: 'center', justifyContent: 'center'
         }}>
           <div style={{
@@ -958,9 +1009,9 @@ export default function Dashboard({ library, setLibrary, currentFolderId, setCur
             width: '500px', maxWidth: '90%', color: 'var(--text-main)',
             boxShadow: '0 10px 25px rgba(0,0,0,0.2)'
           }}>
-            <h2 style={{ marginTop: 0, marginBottom: '16px', fontSize: '20px' }}>These files already exist</h2>
+            <h2 style={{ marginTop: 0, marginBottom: '16px', fontSize: '20px' }}>Duplicate Files Found</h2>
             <p style={{ marginBottom: '16px', color: 'var(--text-muted)' }}>
-              We found {duplicateData.duplicates.length} duplicate file(s).
+              We found {duplicateData.duplicates.length} design(s) that are already in your folders. How would you like to proceed?
             </p>
             <div style={{
               maxHeight: '150px', overflowY: 'auto', marginBottom: '24px',
@@ -980,7 +1031,7 @@ export default function Dashboard({ library, setLibrary, currentFolderId, setCur
                   background: 'transparent', color: 'var(--text-main)', cursor: 'pointer', fontWeight: 500
                 }}
               >
-                View them
+                Review Each
               </button>
               <button 
                 onClick={() => {
@@ -993,7 +1044,7 @@ export default function Dashboard({ library, setLibrary, currentFolderId, setCur
                   background: 'transparent', color: 'var(--text-main)', cursor: 'pointer', fontWeight: 500
                 }}
               >
-                Remove them
+                Skip Duplicates
               </button>
               <button 
                 onClick={() => {
@@ -1009,7 +1060,7 @@ export default function Dashboard({ library, setLibrary, currentFolderId, setCur
                   background: 'var(--accent-color)', color: '#fff', cursor: 'pointer', fontWeight: 500
                 }}
               >
-                Keep them
+                Import as Copies
               </button>
             </div>
           </div>
@@ -1018,260 +1069,287 @@ export default function Dashboard({ library, setLibrary, currentFolderId, setCur
       {isDragging && (
         <div style={{
           position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
-          background: 'rgba(59, 130, 246, 0.2)',
-          backdropFilter: 'blur(2px)',
-          border: '4px dashed var(--accent-color)',
+          background: 'var(--accent-bg-glow)',
+          backdropFilter: 'blur(6px)',
           zIndex: 9999,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          pointerEvents: 'none'
+          pointerEvents: 'none',
+          padding: '24px'
         }}>
-          <h2 style={{ fontSize: '32px', color: 'var(--accent-color)', fontWeight: 'bold' }}>Drop Files to Upload</h2>
+          <div style={{
+            background: 'var(--glass-bg)',
+            backdropFilter: 'var(--glass-blur)',
+            border: '3px dashed var(--accent-color)',
+            borderRadius: '24px',
+            padding: '48px 64px',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: '20px',
+            boxShadow: 'var(--shadow-lg)',
+            textAlign: 'center',
+            maxWidth: '500px'
+          }}>
+            <div className="pulse-icon" style={{ background: 'var(--accent-bg-glow)', padding: '20px', borderRadius: '50%', color: 'var(--accent-color)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Upload size={48} strokeWidth={2} />
+            </div>
+            <h2 style={{ fontSize: '22px', color: 'var(--text-main)', fontWeight: 700, margin: 0 }}>
+              Drop your 3D designs here
+            </h2>
+            <p style={{ fontSize: '14px', color: 'var(--text-muted)', margin: 0, lineHeight: 1.5 }}>
+              Designs will be added to the current folder.<br/>
+              Supports STL, OBJ, and 3DM files.
+            </p>
+          </div>
         </div>
       )}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px', position: 'relative', zIndex: 50 }}>
-        <h1 style={{ 
-          margin: 0, 
-          fontSize: '36px', 
-          fontWeight: 700, 
-          color: 'var(--accent-color)', 
-          textShadow: themeStyle === 'cartoon' ? '3px 3px 0px var(--border-color)' : undefined,
-          WebkitTextStroke: themeStyle === 'cartoon' ? '1.5px var(--border-color)' : undefined,
-          fontFamily: themeStyle === 'cartoon' ? "'Fredoka', cursive" : "inherit"
-        }}>
-          {currentFolder ? currentFolder.name : '3D Viewer'}
-        </h1>
-        <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
+      {/* Top Navbar */}
+      <div className="app-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 24px', height: '64px', position: 'relative', flexShrink: 0 }}>
+        {/* Left: Logo and current folder */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <Box size={24} color="var(--accent-color)" className="item-card-icon" />
+          <h1 className="logo-text" style={{ margin: 0, fontSize: '22px' }}>
+            3D Viewer
+          </h1>
+          {currentFolder && (
+            <>
+              <ChevronRight size={14} color="var(--text-muted)" />
+              <span style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-main)', background: 'var(--accent-bg-glow)', padding: '4px 10px', borderRadius: '12px' }}>
+                {currentFolder.name}
+              </span>
+            </>
+          )}
+        </div>
+
+        {/* Center: Search container */}
+        <div className="search-container">
+          <Search size={16} color="var(--text-muted)" style={{ marginRight: '8px' }} />
+          <input 
+            type="text" 
+            placeholder="Search files..." 
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            className="search-input"
+          />
+        </div>
+
+        {/* Right: Actions and Theme Toggles */}
+        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
           {themeStyle === 'barbie' && (
-            <div style={{ fontSize: '12px', color: 'var(--text-main)', background: 'var(--surface-color)', padding: '4px 12px', borderRadius: '12px', border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-sm)' }}>
-              Credit: <a href="https://www.youtube.com/watch?v=ZyhrYis509A" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-color)', fontWeight: 600 }}>Aqua - Barbie Girl</a>
+            <div style={{ fontSize: '11px', color: 'var(--text-muted)', background: 'var(--surface-color)', padding: '4px 10px', borderRadius: '10px', border: '1px solid var(--border-color)' }}>
+              Barbie Girl
             </div>
           )}
           {themeStyle === 'gta' && (
-            <div style={{ fontSize: '12px', color: 'var(--text-main)', background: 'var(--surface-color)', padding: '4px 12px', borderRadius: '12px', border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-sm)' }}>
-              Credit: {gtaTheme === 'vice_city' && <a href="https://www.youtube.com/watch?v=F2_pg8xd1To" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-color)', fontWeight: 600 }}>GTA Vice City Theme</a>}
-              {gtaTheme === 'san_andreas' && <a href="https://www.youtube.com/watch?v=W4VTq0sa9yg" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-color)', fontWeight: 600 }}>GTA San Andreas Theme</a>}
-              {gtaTheme === 'gta4' && <a href="https://www.youtube.com/watch?v=pWO718iy5mY" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-color)', fontWeight: 600 }}>GTA IV Theme</a>}
-              {gtaTheme === 'gta5' && <a href="https://www.youtube.com/watch?v=KzKvPrIPVbE" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-color)', fontWeight: 600 }}>GTA V Theme</a>}
+            <div style={{ fontSize: '11px', color: 'var(--text-muted)', background: 'var(--surface-color)', padding: '4px 10px', borderRadius: '10px', border: '1px solid var(--border-color)' }}>
+              GTA Theme
             </div>
           )}
-          {themeStyle === 'ghibli' && (
-            <div style={{ fontSize: '12px', color: 'var(--text-main)', background: 'var(--surface-color)', padding: '4px 12px', borderRadius: '12px', border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-sm)' }}>
-              Credit: {!isDarkMode ? (
-                <a href="https://www.youtube.com/watch?v=MZgBjQFMPvk" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-color)', fontWeight: 600 }}>Path of the Wind</a>
-              ) : (
-                <a href="https://www.youtube.com/watch?v=5e65bwX5uOM" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-color)', fontWeight: 600 }}>Meguru Kisetsu</a>
-              )}
-            </div>
-          )}
-          {themeStyle === 'retro' && (
-            <div style={{ fontSize: '12px', color: 'var(--text-main)', background: 'var(--surface-color)', padding: '4px 12px', borderRadius: '12px', border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-sm)' }}>
-              Credit: <a href="https://www.youtube.com/watch?v=RP0_8J7uxhs" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-color)', fontWeight: 600 }}>Laura Branigan - Self Control</a>
-            </div>
-          )}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'var(--surface-color)', padding: '4px', borderRadius: '12px', border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-sm)' }}>
-            {themeStyle === 'communist' && (
-              <button
-                onClick={() => {
-                  if (!isUssrTheme) {
-                    setIsUssrTheme(true);
-                    setIsUssrAlt(false);
-                  } else if (!isUssrAlt) {
-                    setIsUssrAlt(true);
-                  } else {
-                    setIsUssrTheme(false);
-                    setIsUssrAlt(false);
-                  }
-                }}
-                style={{
-                  background: 'transparent',
-                  border: '1px solid var(--border-color)',
-                  borderRadius: '4px',
-                  padding: '2px',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  opacity: isUssrTheme ? 1 : 0.6,
-                  transition: 'opacity 0.2s',
-                  marginLeft: '4px'
-                }}
-                title="Toggle USSR Easter Egg"
-              >
-                <span style={{ fontSize: '16px' }}>☭</span>
-              </button>
-            )}
-            <ThemeDropdown themeStyle={themeStyle} setThemeStyle={setThemeStyle} />
-            
-            {themeStyle === 'gta' ? (
-              <div style={{ display: 'flex', gap: '4px', marginLeft: '4px', borderLeft: '1px solid var(--border-color)', paddingLeft: '8px' }}>
-                {['vice_city', 'san_andreas', 'gta4', 'gta5'].map(theme => (
-                  <button
-                    key={theme}
-                    onClick={() => setGtaTheme(theme)}
-                    style={{
-                      padding: '4px 8px',
-                      fontSize: '12px',
-                      fontWeight: 700,
-                      borderRadius: '8px',
-                      border: 'none',
-                      cursor: 'pointer',
-                      background: gtaTheme === theme ? 'var(--accent-color)' : 'transparent',
-                      color: gtaTheme === theme ? '#fff' : 'var(--text-muted)',
-                      transition: 'all 0.2s'
-                    }}
-                  >
-                    {theme === 'vice_city' ? 'VC' : theme === 'san_andreas' ? 'SA' : theme === 'gta4' ? 'IV' : 'V'}
-                  </button>
-                ))}
-              </div>
-            ) : (
-              <button
-                onClick={() => {
-                  if (themeStyle === 'communist') {
-                    setIsCommunistSpedUp(!isCommunistSpedUp);
-                  } else if (themeStyle === 'spiderman') {
-                    setIsMilesMorales(!isMilesMorales);
-                  } else {
-                    setIsDarkMode(!isDarkMode);
-                  }
-                }}
-                style={{
-                  background: 'transparent',
-                  border: 'none',
-                  cursor: 'pointer',
-                  color: 'var(--text-main)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  padding: '4px'
-                }}
-                title={themeStyle === 'communist' ? "Toggle Communist Mode" : "Toggle Theme"}
-              >
-                {themeStyle === 'communist' ? (
-                  <img 
-                    key={isCommunistSpedUp ? 'spedup' : 'normal'}
-                    src={hammerSickleSvg} 
-                    alt="Hammer and Sickle"
-                    width="24" height="24"
-                    className="spin-once"
-                  />
-                ) : themeStyle === 'spiderman' ? (
-                  <img 
-                    key={isMilesMorales ? 'miles' : 'peter'}
-                    src={spiderSvg} 
-                    alt="Spider"
-                    width="24" height="24"
-                  />
-                ) : themeStyle === 'ghibli' ? (
-                  isDarkMode ? <Brush size={20} /> : <Cat size={20} />
-                ) : (
-                  isDarkMode ? <Sun size={20} /> : <Moon size={20} />
-                )}
-              </button>
-            )}
-          </div>
-
           
-          <div style={{ display: 'flex', alignItems: 'center', background: 'var(--surface-color)', padding: '4px 12px', borderRadius: '24px', border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-sm)' }}>
-            <Search size={18} color="var(--text-muted)" style={{ marginRight: '8px' }} />
-            <input 
-              type="text" 
-              placeholder="Search..." 
-              value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
+          <button 
+            onClick={handleCreateFolder}
+            className="btn-secondary"
+            style={{ padding: '8px 16px', fontSize: '13px', borderRadius: '20px' }}
+          >
+            <Plus size={16} /> New Folder
+          </button>
+          <button 
+            onClick={handleAddFiles}
+            className="btn-primary"
+            style={{ padding: '8px 16px', fontSize: '13px', borderRadius: '20px' }}
+          >
+            <Upload size={16} /> Add Files
+          </button>
+
+          <div style={{ width: '1px', height: '20px', background: 'var(--border-color)', margin: '0 4px' }}></div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'var(--surface-color)', padding: '3px 8px', borderRadius: '20px', border: '1px solid var(--border-color)' }}>
+            <ThemeDropdown themeStyle={themeStyle} setThemeStyle={setThemeStyle} />
+            <button
+              onClick={() => setIsDarkMode(!isDarkMode)}
               style={{
                 background: 'transparent',
                 border: 'none',
-                outline: 'none',
+                cursor: 'pointer',
                 color: 'var(--text-main)',
-                width: '150px',
-                fontFamily: 'inherit',
-                fontSize: '14px'
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: '4px'
               }}
-            />
+              title="Toggle Theme"
+            >
+              {isDarkMode ? <Sun size={16} /> : <Moon size={16} />}
+            </button>
           </div>
+        </div>
+      </div>
 
-          <div style={{ display: 'flex', background: 'var(--surface-color)', border: '1px solid var(--border-color)', borderRadius: '8px', overflow: 'hidden' }}>
+      {/* Control Toolbar */}
+      <div className="app-toolbar" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 24px', height: '52px', flexShrink: 0 }}>
+        {/* Left Side: Navigation Pills & Breadcrumbs */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <div style={{ display: 'flex', background: 'var(--surface-color)', border: '1px solid var(--border-color)', borderRadius: '20px', padding: '2px', gap: '2px' }}>
             <div 
               onClick={() => { setActiveSidebarTab('folders'); setCurrentFolderId(null); }}
               title="Home"
-              style={{ padding: '8px 16px', display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', background: activeSidebarTab === 'folders' ? 'var(--accent-color)' : 'transparent', color: activeSidebarTab === 'folders' ? '#fff' : 'var(--text-muted)' }}
-            ><Home size={16} /> Home</div>
+              className={`tab-pill ${activeSidebarTab === 'folders' ? 'active' : ''}`}
+              style={{ padding: '6px 12px', borderRadius: '18px', fontSize: '13px' }}
+            >
+              <Home size={14} /> Home
+            </div>
             <div 
               onClick={() => { setActiveSidebarTab('favorites'); setCurrentFolderId(null); }}
               title="Favorites"
-              style={{ padding: '8px 16px', display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', background: activeSidebarTab === 'favorites' ? 'var(--accent-color)' : 'transparent', color: activeSidebarTab === 'favorites' ? '#fff' : 'var(--text-muted)' }}
-            ><Star size={16} /> Favorites</div>
+              className={`tab-pill ${activeSidebarTab === 'favorites' ? 'active' : ''}`}
+              style={{ padding: '6px 12px', borderRadius: '18px', fontSize: '13px' }}
+            >
+              <Star size={14} /> Favorites
+            </div>
           </div>
+
+          <div style={{ width: '1px', height: '16px', background: 'var(--border-color)' }}></div>
+
+          {/* Breadcrumbs inside Toolbar */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--text-muted)', fontSize: '13px', fontWeight: 500 }}>
+            {activeSidebarTab === 'folders' ? breadcrumbs.map((crumb, idx) => (
+              <Fragment key={idx}>
+                <span 
+                  onClick={() => {
+                    setSelectedNodes([]);
+                    setCurrentFolderId(crumb.id);
+                    setActiveSidebarTab('folders');
+                  }}
+                  style={{
+                    cursor: 'pointer',
+                    fontWeight: idx === breadcrumbs.length - 1 ? 700 : 500,
+                    color: idx === breadcrumbs.length - 1 ? 'var(--text-main)' : 'var(--text-muted)',
+                    transition: 'color 0.2s',
+                    padding: '2px 6px',
+                    borderRadius: '4px',
+                  }}
+                  onMouseEnter={e => e.currentTarget.style.color = 'var(--text-main)'}
+                  onMouseLeave={e => e.currentTarget.style.color = idx === breadcrumbs.length - 1 ? 'var(--text-main)' : 'var(--text-muted)'}
+                >
+                  {idx === 0 ? 'Root' : crumb.name}
+                </span>
+                {idx < breadcrumbs.length - 1 && <ChevronRight size={12} color="var(--text-muted)" />}
+              </Fragment>
+            )) : (
+              <span style={{ fontWeight: 700, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                Favorites
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* Right Side: Sorting, Filter, ViewMode & Multi-select */}
+        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+          <button 
+            onClick={handleScanDuplicates}
+            className="btn-secondary"
+            style={{ padding: '6px 12px', borderRadius: '8px', fontSize: '12px', fontWeight: 500 }}
+          >
+            <Search size={14} /> Duplicates
+          </button>
+          
+          <button 
+            onClick={() => {
+              setIsMultiSelectMode(!isMultiSelectMode);
+              if (isMultiSelectMode) setSelectedNodes([]);
+            }}
+            className="dropdown-trigger"
+            style={{ 
+              background: isMultiSelectMode ? 'var(--accent-bg-glow)' : 'var(--surface-color)', 
+              borderColor: isMultiSelectMode ? 'var(--accent-color)' : 'var(--border-color)',
+              color: isMultiSelectMode ? 'var(--accent-color)' : 'var(--text-main)',
+              fontSize: '12px', padding: '6px 12px', borderRadius: '8px'
+            }}
+          >
+            <ListFilter size={14} /> Select
+          </button>
 
           <FilterDropdown filterExt={filterExt} setFilterExt={setFilterExt} />
 
-          <div style={{ display: 'flex', background: 'var(--surface-color)', border: '1px solid var(--border-color)', borderRadius: '8px', overflow: 'hidden' }}>
+          {/* View Mode Toggle */}
+          <div style={{ display: 'flex', background: 'var(--surface-color)', border: '1px solid var(--border-color)', borderRadius: '8px', overflow: 'hidden', padding: '2px' }}>
             <div 
               onClick={() => setViewMode('grid')}
               title="Grid View"
-              style={{ padding: '8px', cursor: 'pointer', background: viewMode === 'grid' ? 'var(--accent-color)' : 'transparent', color: viewMode === 'grid' ? '#fff' : 'var(--text-muted)' }}
-            ><LayoutGrid size={18} /></div>
+              style={{ 
+                padding: '4px 8px', cursor: 'pointer', borderRadius: '6px',
+                background: viewMode === 'grid' ? 'var(--accent-bg-glow)' : 'transparent', 
+                color: viewMode === 'grid' ? 'var(--accent-color)' : 'var(--text-muted)',
+                transition: 'all 0.2s'
+              }}
+            ><LayoutGrid size={14} /></div>
             <div 
               onClick={() => setViewMode('list')}
               title="List View"
-              style={{ padding: '8px', cursor: 'pointer', background: viewMode === 'list' ? 'var(--accent-color)' : 'transparent', color: viewMode === 'list' ? '#fff' : 'var(--text-muted)' }}
-            ><List size={18} /></div>
+              style={{ 
+                padding: '4px 8px', cursor: 'pointer', borderRadius: '6px',
+                background: viewMode === 'list' ? 'var(--accent-bg-glow)' : 'transparent', 
+                color: viewMode === 'list' ? 'var(--accent-color)' : 'var(--text-muted)',
+                transition: 'all 0.2s'
+              }}
+            ><List size={14} /></div>
           </div>
 
-          <div style={{ position: 'relative' }}>
+          {/* Sort Menu */}
+          <div ref={sortDropdownRef} style={{ position: 'relative' }}>
             <button 
               onClick={() => setIsSortOpen(!isSortOpen)}
-              style={{ display: 'flex', alignItems: 'center', background: 'var(--surface-color)', padding: '6px 16px', borderRadius: '24px', border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-sm)', gap: '8px', cursor: 'pointer', userSelect: 'none' }}
+              className="dropdown-trigger"
+              style={{ fontSize: '12px', padding: '6px 12px', borderRadius: '8px' }}
             >
-              <ListFilter size={18} color="var(--text-muted)" />
-              <span style={{ color: 'var(--text-main)', fontSize: '14px', fontWeight: 500 }}>
+              <ListFilter size={14} color="var(--text-muted)" />
+              <span>
                 {sortBy === 'newest' && 'Newest'}
                 {sortBy === 'oldest' && 'Oldest'}
-                {sortBy === 'name-asc' && 'Name (A-Z)'}
-                {sortBy === 'name-desc' && 'Name (Z-A)'}
-                {sortBy === 'size-desc' && 'Size (Large)'}
-                {sortBy === 'size-asc' && 'Size (Small)'}
+                {sortBy === 'name-asc' && 'A-Z'}
+                {sortBy === 'name-desc' && 'Z-A'}
+                {sortBy === 'size-desc' && 'Size (Desc)'}
+                {sortBy === 'size-asc' && 'Size (Asc)'}
               </span>
             </button>
             
             {isSortOpen && (
               <div style={{
                 position: 'absolute',
-                top: 'calc(100% + 8px)',
+                top: 'calc(100% + 6px)',
                 right: 0,
                 background: 'var(--surface-color)',
                 border: '1px solid var(--border-color)',
-                borderRadius: '12px',
+                borderRadius: '8px',
                 boxShadow: 'var(--shadow-lg)',
-                padding: '8px',
-                minWidth: '160px',
-                zIndex: 50,
+                padding: '4px',
+                minWidth: '150px',
+                zIndex: 150,
                 display: 'flex',
                 flexDirection: 'column',
-                gap: '4px'
+                gap: '2px'
               }}>
                 {[
                   { id: 'newest', label: 'Newest First' },
                   { id: 'oldest', label: 'Oldest First' },
                   { id: 'name-asc', label: 'Name (A-Z)' },
                   { id: 'name-desc', label: 'Name (Z-A)' },
-                  { id: 'size-desc', label: 'Size (Largest First)' },
-                  { id: 'size-asc', label: 'Size (Smallest First)' }
+                  { id: 'size-desc', label: 'Size (Largest)' },
+                  { id: 'size-asc', label: 'Size (Smallest)' }
                 ].map(opt => (
                   <button
                     key={opt.id}
                     onClick={() => { setSortBy(opt.id); setIsSortOpen(false); }}
                     style={{
-                      padding: '8px 12px',
-                      borderRadius: '8px',
+                      padding: '6px 10px',
+                      borderRadius: '6px',
                       border: 'none',
                       background: sortBy === opt.id ? 'var(--accent-color)' : 'transparent',
                       color: sortBy === opt.id ? '#fff' : 'var(--text-main)',
                       textAlign: 'left',
                       cursor: 'pointer',
-                      fontSize: '14px',
-                      transition: 'all 0.2s',
+                      fontSize: '13px',
+                      transition: 'all 0.15s',
                       fontWeight: sortBy === opt.id ? 600 : 400
                     }}
                   >
@@ -1281,103 +1359,26 @@ export default function Dashboard({ library, setLibrary, currentFolderId, setCur
               </div>
             )}
           </div>
-
-          <button 
-            onClick={() => {
-              setIsMultiSelectMode(!isMultiSelectMode);
-              if (isMultiSelectMode) setSelectedNodes([]);
-            }}
-            style={{ 
-              display: 'flex', alignItems: 'center', gap: '8px', 
-              padding: '10px 20px', borderRadius: '24px', 
-              border: '1px solid var(--border-color)', background: isMultiSelectMode ? 'var(--accent-color)' : 'var(--surface-color)', 
-              color: isMultiSelectMode ? '#fff' : 'var(--accent-color)', fontWeight: 600, cursor: 'pointer', boxShadow: 'var(--shadow-sm)',
-              transition: 'all 0.2s'
-            }}
-          >
-            <ListFilter size={18} /> {isMultiSelectMode ? 'Cancel Selection' : 'Select Multiple Files'}
-          </button>
-          <button 
-            onClick={handleScanDuplicates}
-            style={{ 
-              display: 'flex', alignItems: 'center', gap: '8px', 
-              padding: '10px 20px', borderRadius: '24px', 
-              border: '1px solid var(--border-color)', background: 'var(--surface-color)', 
-              color: 'var(--accent-color)', fontWeight: 600, cursor: 'pointer', boxShadow: 'var(--shadow-sm)'
-            }}
-          >
-            <Search size={18} /> Manage Duplicates
-          </button>
-          <button 
-            onClick={handleCreateFolder}
-            style={{ 
-              display: 'flex', alignItems: 'center', gap: '8px', 
-              padding: '10px 20px', borderRadius: '24px', 
-              border: '1px solid var(--border-color)', background: 'var(--surface-color)', 
-              color: 'var(--accent-color)', fontWeight: 600, cursor: 'pointer', boxShadow: 'var(--shadow-sm)'
-            }}
-          >
-            <Plus size={18} /> New Folder
-          </button>
-          <button 
-            onClick={handleAddFiles}
-            style={{ 
-              display: 'flex', alignItems: 'center', gap: '8px', 
-              padding: '10px 20px', borderRadius: '24px', 
-              border: 'none', background: 'var(--accent-color)', 
-              color: 'var(--accent-text)', fontWeight: 600, cursor: 'pointer', boxShadow: 'var(--shadow-md)'
-            }}
-          >
-            <Upload size={18} /> Add Files
-          </button>
         </div>
       </div>
 
-      { (selectedNodes.length > 0 || isMultiSelectMode) && (
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(59, 130, 246, 0.1)', border: '1px solid var(--accent-color)', borderRadius: '12px', padding: '12px 24px', marginBottom: '24px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-            <span style={{ fontWeight: 600, color: 'var(--accent-color)' }}>{selectedNodes.length} item(s) selected</span>
-            <button onClick={(e) => { e.stopPropagation(); setSelectedNodes([]); }} style={{ background: 'transparent', border: '1px solid var(--accent-color)', color: 'var(--accent-color)', padding: '4px 12px', borderRadius: '16px', cursor: 'pointer', fontSize: '13px', fontWeight: 600 }}>Clear Selection</button>
-            <button onClick={(e) => { e.stopPropagation(); setSelectedNodes(allCurrentItems.map(item => item.id)); }} style={{ background: 'var(--accent-color)', border: 'none', color: '#fff', padding: '4px 12px', borderRadius: '16px', cursor: 'pointer', fontSize: '13px', fontWeight: 600 }}>Select All</button>
+      {/* Scrollable Content Container */}
+      <div style={{ flex: 1, overflowY: 'auto', padding: '24px 32px 64px 32px', display: 'flex', flexDirection: 'column', position: 'relative' }}>
+        
+        { (selectedNodes.length > 0 || isMultiSelectMode) && (
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--accent-bg-glow)', border: '1px solid var(--accent-color)', borderRadius: '12px', padding: '12px 24px', marginBottom: '24px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+              <span style={{ fontWeight: 600, color: 'var(--accent-color)', fontSize: '14px' }}>{selectedNodes.length} item(s) selected</span>
+              <button onClick={(e) => { e.stopPropagation(); setSelectedNodes([]); }} className="btn-secondary" style={{ padding: '4px 12px', borderRadius: '16px', fontSize: '12px' }}>Clear</button>
+              <button onClick={(e) => { e.stopPropagation(); setSelectedNodes(allCurrentItems.map(item => item.id)); }} className="btn-primary" style={{ padding: '4px 12px', borderRadius: '16px', fontSize: '12px', boxShadow: 'none' }}>Select All</button>
+            </div>
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <button onClick={(e) => { e.stopPropagation(); setNodeToDelete('multiple'); }} style={{ display: 'flex', alignItems: 'center', gap: '6px', background: '#EF4444', color: 'white', border: 'none', padding: '6px 14px', borderRadius: '8px', cursor: 'pointer', fontWeight: 600, fontSize: '13px' }}>
+                <Trash2 size={14} /> Delete Selected
+              </button>
+            </div>
           </div>
-          <div style={{ display: 'flex', gap: '12px' }}>
-            <button onClick={(e) => { e.stopPropagation(); setNodeToDelete('multiple'); }} style={{ display: 'flex', alignItems: 'center', gap: '6px', background: '#EF4444', color: 'white', border: 'none', padding: '8px 16px', borderRadius: '8px', cursor: 'pointer', fontWeight: 600 }}>
-              <Trash2 size={16} /> Delete Selected
-            </button>
-          </div>
-        </div>
-      )}
-
-      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '32px', color: 'var(--text-muted)', fontSize: '15px', fontWeight: 600 }}>
-        {activeSidebarTab === 'folders' ? breadcrumbs.map((crumb, idx) => (
-          <React.Fragment key={idx}>
-            <span 
-              onClick={() => {
-                setSelectedNodes([]);
-                setCurrentFolderId(crumb.id);
-                setActiveSidebarTab('folders');
-              }}
-              style={{
-                cursor: 'pointer',
-                fontWeight: idx === breadcrumbs.length - 1 ? 700 : 500,
-                color: idx === breadcrumbs.length - 1 ? 'var(--text-main)' : 'var(--text-muted)',
-                transition: 'color 0.2s',
-                padding: '4px 8px',
-                borderRadius: '6px',
-              }}
-              onMouseEnter={e => e.currentTarget.style.color = 'var(--text-main)'}
-              onMouseLeave={e => e.currentTarget.style.color = idx === breadcrumbs.length - 1 ? 'var(--text-main)' : 'var(--text-muted)'}
-            >
-              {idx === 0 ? <Home size={22} strokeWidth={2.5} /> : crumb.name}
-            </span>
-            {idx < breadcrumbs.length - 1 && <ChevronRight size={16} color="var(--text-muted)" />}
-          </React.Fragment>
-        )) : (
-          <span style={{ fontWeight: 700, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Star size={22} fill="gold" color="gold" /> Favorites
-          </span>
         )}
-      </div>
 
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
         {searchQuery.trim() ? (
@@ -1456,29 +1457,13 @@ export default function Dashboard({ library, setLibrary, currentFolderId, setCur
             ) : (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '24px' }}>
               {folders.map((folder, index) => (
-                <div 
+                 <div 
                   key={folder.id} 
                   onClick={(e) => handleNodeClick(e, folder, index)}
+                  className={`item-card ${selectedNodes.includes(folder.id) ? 'selected' : ''}`}
                   style={{
-                    position: 'relative',
-                    background: selectedNodes.includes(folder.id) ? 'var(--bg-color)' : 'var(--surface-color)',
-                    padding: '24px',
-                    borderRadius: '16px',
-                    boxShadow: selectedNodes.includes(folder.id) ? '0 0 0 3px var(--accent-color)' : 'var(--shadow-md)',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '12px',
-                    border: selectedNodes.includes(folder.id) ? '1px solid var(--accent-color)' : '1px solid var(--border-color)',
-                    transition: 'all 0.2s',
-                  }}
-                  onMouseEnter={e => {
-                    e.currentTarget.style.transform = 'translateY(-4px)';
-                    e.currentTarget.style.boxShadow = 'var(--shadow-lg)';
-                  }}
-                  onMouseLeave={e => {
-                    e.currentTarget.style.transform = 'none';
-                    e.currentTarget.style.boxShadow = 'var(--shadow-md)';
+                    width: '100%',
+                    height: '100%',
                   }}
                 >
                   {selectedNodes.includes(folder.id) && (
@@ -1486,19 +1471,21 @@ export default function Dashboard({ library, setLibrary, currentFolderId, setCur
                       <Check size={16} strokeWidth={3} />
                     </div>
                   )}
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    {themeStyle === 'cartoon' ? (
-                      <svg width="32" height="32" viewBox="0 0 24 24" fill="var(--accent-color)" stroke="var(--border-color)" strokeWidth="2">
-                        <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
-                        <circle cx="9" cy="13" r="1.5" fill="#000"></circle>
-                        <circle cx="15" cy="13" r="1.5" fill="#000"></circle>
-                        <path d="M10 16c1.5 1.5 2.5 1.5 4 0" stroke="#000" strokeWidth="1.5" strokeLinecap="round"></path>
-                      </svg>
-                    ) : (
-                      <Folder size={32} color="var(--accent-color)" fill="var(--accent-color)" />
-                    )}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+                    <div className="item-card-icon" style={{ display: 'flex', alignItems: 'center' }}>
+                      {themeStyle === 'cartoon' ? (
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="var(--accent-color)" stroke="var(--border-color)" strokeWidth="2">
+                          <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+                          <circle cx="9" cy="13" r="1.5" fill="#000"></circle>
+                          <circle cx="15" cy="13" r="1.5" fill="#000"></circle>
+                          <path d="M10 16c1.5 1.5 2.5 1.5 4 0" stroke="#000" strokeWidth="1.5" strokeLinecap="round"></path>
+                        </svg>
+                      ) : (
+                        <Folder size={32} color="var(--accent-color)" fill="var(--accent-color)" />
+                      )}
+                    </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <span style={{ background: '#F1F5F9', padding: '4px 8px', borderRadius: '12px', fontSize: '12px', fontWeight: 600, color: '#64748B' }}>
+                      <span style={{ background: 'var(--bg-color)', padding: '4px 8px', borderRadius: '12px', fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)' }}>
                         {folder.children ? folder.children.length : 0} items
                       </span>
                       <div 
@@ -1510,7 +1497,7 @@ export default function Dashboard({ library, setLibrary, currentFolderId, setCur
                       </div>
                     </div>
                   </div>
-                  <div style={{ fontWeight: 600, fontSize: '16px', color: 'var(--text-main)', marginTop: '8px', paddingTop: '12px', borderTop: '2px dashed var(--border-color)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div style={{ fontWeight: 600, fontSize: '16px', color: 'var(--text-main)', marginTop: 'auto', paddingTop: '12px', borderTop: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
                     {editingNodeId === folder.id ? (
                       <form onSubmit={e => handleRenameSubmit(e, folder.id)} style={{ display: 'flex', width: '100%', gap: '4px' }}>
                         <input 
@@ -1544,7 +1531,6 @@ export default function Dashboard({ library, setLibrary, currentFolderId, setCur
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
             <h2 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '20px', color: 'var(--text-main)', flexShrink: 0 }}>Files</h2>
             {viewMode === 'list' ? (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               <VirtualFileList 
                 files={files} 
                 selectedNodes={selectedNodes} 
@@ -1554,7 +1540,6 @@ export default function Dashboard({ library, setLibrary, currentFolderId, setCur
                 getFileIconInfo={getFileIconInfo} 
                 foldersLength={folders.length} 
               />
-              </div>
             ) : (
               <VirtualFileGrid 
                 files={files} 
@@ -1586,7 +1571,7 @@ export default function Dashboard({ library, setLibrary, currentFolderId, setCur
       </div>
 
       {showPrompt && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
           <form 
             onSubmit={confirmCreateFolder}
             style={{ background: 'var(--surface-color)', padding: '24px', borderRadius: '12px', width: '320px', boxShadow: 'var(--shadow-lg)' }}
@@ -1601,22 +1586,24 @@ export default function Dashboard({ library, setLibrary, currentFolderId, setCur
             />
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
               <button type="button" onClick={() => setShowPrompt(false)} style={{ padding: '6px 12px', background: 'transparent', border: 'none', cursor: 'pointer', fontWeight: 600, color: 'var(--text-muted)' }}>Cancel</button>
-              <button type="submit" style={{ padding: '6px 16px', background: 'var(--accent-color)', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 600 }}>Create</button>
+              <button type="submit" style={{ padding: '6px 16px', background: 'var(--accent-color)', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 600 }}>Create Folder</button>
             </div>
           </form>
         </div>
       )}
 
       {nodeToDelete && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
           <div style={{ background: 'var(--surface-color)', padding: '24px', borderRadius: '12px', width: '320px', boxShadow: 'var(--shadow-lg)' }}>
-            <h3 style={{ margin: '0 0 16px 0', color: 'var(--text-main)' }}>Delete Item?</h3>
+            <h3 style={{ margin: '0 0 16px 0', color: 'var(--text-main)' }}>
+              {nodeToDelete === 'multiple' ? 'Delete Selected?' : 'Delete Design?'}
+            </h3>
             <p style={{ margin: '0 0 24px 0', color: 'var(--text-muted)', fontSize: '14px', lineHeight: 1.5 }}>
-              Are you sure you want to remove this item from the library? This action cannot be undone.
+              Are you sure you want to permanently delete this? It will be removed from your computer and library.
             </p>
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
               <button onClick={() => setNodeToDelete(null)} style={{ padding: '6px 12px', background: 'transparent', border: 'none', cursor: 'pointer', fontWeight: 600, color: 'var(--text-muted)' }}>Cancel</button>
-              <button onClick={confirmDeleteNode} style={{ padding: '6px 16px', background: '#EF4444', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 600 }}>Delete</button>
+              <button onClick={confirmDeleteNode} style={{ padding: '6px 16px', background: '#EF4444', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 600 }}>Delete Permanently</button>
             </div>
           </div>
         </div>
@@ -1650,6 +1637,51 @@ export default function Dashboard({ library, setLibrary, currentFolderId, setCur
           Online3DViewer
         </a>
       </div>
+      {notification && (
+        <div style={{
+          position: 'fixed',
+          top: '24px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          background: 'var(--surface-color)',
+          border: `1px solid ${notification.type === 'error' ? '#EF4444' : (notification.type === 'success' ? '#10B981' : 'var(--accent-color)')}`,
+          borderRadius: '12px',
+          padding: '12px 24px',
+          boxShadow: 'var(--shadow-lg)',
+          zIndex: 10000,
+          display: 'flex',
+          alignItems: 'center',
+          gap: '12px',
+          minWidth: '300px',
+          maxWidth: '90%',
+          backdropFilter: 'var(--glass-blur)',
+          animation: 'slide-down 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards'
+        }}>
+          <div style={{
+            width: '8px',
+            height: '8px',
+            borderRadius: '50%',
+            background: notification.type === 'error' ? '#EF4444' : (notification.type === 'success' ? '#10B981' : 'var(--accent-color)')
+          }} />
+          <span style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-main)', flex: 1 }}>{notification.message}</span>
+          <button 
+            onClick={() => setNotification(null)}
+            style={{
+              background: 'transparent',
+              border: 'none',
+              color: 'var(--text-muted)',
+              cursor: 'pointer',
+              fontSize: '12px',
+              fontWeight: 600,
+              padding: '2px 6px',
+              fontFamily: 'inherit'
+            }}
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
+      </div> {/* Scrollable Content Container */}
     </div>
   );
 }

@@ -1,10 +1,10 @@
-import React, { useRef, useEffect, useState } from 'react';
-import { ArrowLeft, Settings, Folder, File, ChevronRight, Upload, Trash2, Home, Sun, Moon, Cat, Brush, Bug } from 'lucide-react';
+import { useRef, useEffect } from 'react';
+import { ArrowLeft, File, Sun, Moon } from 'lucide-react';
 import Sidebar from './Sidebar';
 
 import ThemeDropdown from './ThemeDropdown';
 
-export default function ViewerWorkspace({ library, setLibrary, activeFile, setActiveFile, onBack, isDarkMode, setIsDarkMode, themeStyle, setThemeStyle, gtaTheme, setGtaTheme, isCommunistSpedUp, setIsCommunistSpedUp, isMilesMorales, setIsMilesMorales, isUssrTheme, setIsUssrTheme, isUssrAlt, setIsUssrAlt }) {
+export default function ViewerWorkspace({ library, setLibrary, activeFile, setActiveFile, onBack, isDarkMode, setIsDarkMode, themeStyle, setThemeStyle, gtaTheme }) {
   const iframeRef = useRef(null);
 
   useEffect(() => {
@@ -16,7 +16,7 @@ export default function ViewerWorkspace({ library, setLibrary, activeFile, setAc
         
         // Wait for Online3DViewer internal initialization to complete!
         // This completely prevents the initial "faint icons" race condition.
-        if (!win || !win.OV || !win.OV.app) {
+        if (!win || !win.OV || !win.OV.app || !win.OV.app.viewer) {
           setTimeout(handleIframeLoad, 50);
           return;
         }
@@ -134,10 +134,17 @@ export default function ViewerWorkspace({ library, setLibrary, activeFile, setAc
           `;
           doc.head.appendChild(style);
         }
-        if (win && win.OV && win.OV.app) {
+        if (win && win.OV && win.OV.app && win.OV.app.viewer) {
           // Sync theme
           const isDarkTheme = isDarkMode || themeStyle === 'gta' || themeStyle === 'retro';
           win.OV.app.SwitchTheme(isDarkTheme ? 2 : 1, true);
+          
+          // Set background color of 3D canvas to match our application surface
+          const r = isDarkTheme ? 15 : 248; // #0f111a or #f8fafc
+          const g = isDarkTheme ? 17 : 250;
+          const b = isDarkTheme ? 26 : 252;
+          win.OV.app.settings.backgroundColor = { r, g, b, a: 255 };
+          win.OV.app.viewer.SetBackgroundColor(win.OV.app.settings.backgroundColor);
         }
         if (doc) {
           const isDarkTheme = isDarkMode || themeStyle === 'gta' || themeStyle === 'retro';
@@ -223,8 +230,15 @@ export default function ViewerWorkspace({ library, setLibrary, activeFile, setAc
       try {
         const isDarkTheme = isDarkMode || themeStyle === 'gta' || themeStyle === 'retro';
         const win = iframeRef.current.contentWindow;
-        if (win && win.OV && win.OV.app) {
+        if (win && win.OV && win.OV.app && win.OV.app.viewer) {
           win.OV.app.SwitchTheme(isDarkTheme ? 2 : 1, true);
+          
+          // Set background color of 3D canvas to match our application surface
+          const r = isDarkTheme ? 15 : 248; // #0f111a or #f8fafc
+          const g = isDarkTheme ? 17 : 250;
+          const b = isDarkTheme ? 26 : 252;
+          win.OV.app.settings.backgroundColor = { r, g, b, a: 255 };
+          win.OV.app.viewer.SetBackgroundColor(win.OV.app.settings.backgroundColor);
         }
         const doc = iframeRef.current.contentDocument;
         if (doc) {
@@ -240,7 +254,7 @@ export default function ViewerWorkspace({ library, setLibrary, activeFile, setAc
           }
           
           const parentStyle = getComputedStyle(document.documentElement);
-          const surface = parentStyle.getPropertyValue('--surface-color').trim() || '#fff';
+
           const text = parentStyle.getPropertyValue('--text-main').trim() || '#000';
           const border = parentStyle.getPropertyValue('--border-color').trim() || '#ccc';
           const accent = parentStyle.getPropertyValue('--accent-color').trim() || '#3b82f6';
@@ -510,7 +524,9 @@ export default function ViewerWorkspace({ library, setLibrary, activeFile, setAc
 
           customStyle.innerHTML = toolbarCSS;
         }
-      } catch (err) {}
+      } catch (e) {
+        console.error('Theme sync error:', e);
+      }
     }
   }, [isDarkMode, themeStyle, activeFile, gtaTheme]);
 
@@ -522,139 +538,54 @@ export default function ViewerWorkspace({ library, setLibrary, activeFile, setAc
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
       {/* Top Header */}
-      <div style={{ position: 'relative', zIndex: 50, height: '60px', borderBottom: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', padding: '0 24px', justifyContent: 'space-between', background: 'var(--surface-color)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+      <div className="app-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 24px', height: '64px', position: 'relative', flexShrink: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
           <button 
             onClick={onBack}
-            style={{ background: 'none', border: 'none', display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', color: 'var(--text-main)', padding: 0 }}
+            className="btn-secondary"
+            style={{ padding: '8px 16px', fontSize: '13px', borderRadius: '20px' }}
           >
-            <ArrowLeft size={20} />
-            <span style={{ fontSize: '14px', fontWeight: 500 }}>Back to Dashboard</span>
+            <ArrowLeft size={16} />
+            <span>Back</span>
           </button>
           <div style={{ width: '1px', height: '24px', background: 'var(--border-color)' }}></div>
-          <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-main)' }}>
-            {activeFile ? activeFile.name : 'No file selected'}
+          <div style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text-main)', background: 'var(--accent-bg-glow)', padding: '4px 12px', borderRadius: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <File size={16} color="var(--accent-color)" />
+            <span>{activeFile ? activeFile.name : 'No file selected'}</span>
           </div>
         </div>
         
         <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
           {themeStyle === 'barbie' && (
-            <div style={{ fontSize: '12px', color: 'var(--text-main)', background: 'var(--bg-color)', padding: '4px 12px', borderRadius: '12px', border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-sm)' }}>
-              Credit: <a href="https://www.youtube.com/watch?v=ZyhrYis509A" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-color)', fontWeight: 600 }}>Aqua - Barbie Girl</a>
+            <div style={{ fontSize: '11px', color: 'var(--text-muted)', background: 'var(--surface-color)', padding: '4px 10px', borderRadius: '10px', border: '1px solid var(--border-color)' }}>
+              Barbie Girl
             </div>
           )}
           {themeStyle === 'gta' && (
-            <div style={{ fontSize: '12px', color: 'var(--text-main)', background: 'var(--bg-color)', padding: '4px 12px', borderRadius: '12px', border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-sm)' }}>
-              Credit: {gtaTheme === 'vice_city' && <a href="https://www.youtube.com/watch?v=F2_pg8xd1To" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-color)', fontWeight: 600 }}>GTA Vice City Theme</a>}
-              {gtaTheme === 'san_andreas' && <a href="https://www.youtube.com/watch?v=W4VTq0sa9yg" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-color)', fontWeight: 600 }}>GTA San Andreas Theme</a>}
-              {gtaTheme === 'gta4' && <a href="https://www.youtube.com/watch?v=pWO718iy5mY" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-color)', fontWeight: 600 }}>GTA IV Theme</a>}
-              {gtaTheme === 'gta5' && <a href="https://www.youtube.com/watch?v=KzKvPrIPVbE" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-color)', fontWeight: 600 }}>GTA V Theme</a>}
+            <div style={{ fontSize: '11px', color: 'var(--text-muted)', background: 'var(--surface-color)', padding: '4px 10px', borderRadius: '10px', border: '1px solid var(--border-color)' }}>
+              GTA Theme
             </div>
           )}
-          {themeStyle === 'ghibli' && (
-            <div style={{ fontSize: '12px', color: 'var(--text-main)', background: 'var(--bg-color)', padding: '4px 12px', borderRadius: '12px', border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-sm)' }}>
-              Credit: {!isDarkMode ? (
-                <a href="https://www.youtube.com/watch?v=MZgBjQFMPvk" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-color)', fontWeight: 600 }}>Path of the Wind</a>
-              ) : (
-                <a href="https://www.youtube.com/watch?v=5e65bwX5uOM" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-color)', fontWeight: 600 }}>Meguru Kisetsu</a>
-              )}
-            </div>
-          )}
-          {themeStyle === 'retro' && (
-            <div style={{ fontSize: '12px', color: 'var(--text-main)', background: 'var(--bg-color)', padding: '4px 12px', borderRadius: '12px', border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-sm)' }}>
-              Credit: <a href="https://www.youtube.com/watch?v=RP0_8J7uxhs" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-color)', fontWeight: 600 }}>Laura Branigan - Self Control</a>
-            </div>
-          )}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'var(--bg-color)', padding: '4px', borderRadius: '12px', border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-sm)' }}>
-            {themeStyle === 'communist' && (
-              <button
-                onClick={() => {
-                  if (!isUssrTheme) {
-                    setIsUssrTheme(true);
-                    setIsUssrAlt(false);
-                  } else if (!isUssrAlt) {
-                    setIsUssrAlt(true);
-                  } else {
-                    setIsUssrTheme(false);
-                    setIsUssrAlt(false);
-                  }
-                }}
-                style={{
-                  background: 'transparent',
-                  border: '1px solid var(--border-color)',
-                  borderRadius: '4px',
-                  padding: '2px',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  opacity: isUssrTheme ? 1 : 0.6,
-                  transition: 'opacity 0.2s',
-                  marginLeft: '4px'
-                }}
-                title="Toggle USSR Easter Egg"
-              >
-                <span style={{ fontSize: '16px' }}>☭</span>
-              </button>
-            )}
+          
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'var(--surface-color)', padding: '3px 8px', borderRadius: '20px', border: '1px solid var(--border-color)' }}>
             <ThemeDropdown themeStyle={themeStyle} setThemeStyle={setThemeStyle} />
-            
-            {themeStyle === 'gta' ? (
-              <div style={{ display: 'flex', gap: '4px', marginLeft: '4px', borderLeft: '1px solid var(--border-color)', paddingLeft: '8px' }}>
-                {['vice_city', 'san_andreas', 'gta4', 'gta5'].map(theme => (
-                  <button
-                    key={theme}
-                    onClick={() => setGtaTheme(theme)}
-                    style={{
-                      padding: '4px 8px',
-                      fontSize: '12px',
-                      fontWeight: 700,
-                      borderRadius: '8px',
-                      border: 'none',
-                      cursor: 'pointer',
-                      background: gtaTheme === theme ? 'var(--accent-color)' : 'transparent',
-                      color: gtaTheme === theme ? '#fff' : 'var(--text-muted)',
-                      transition: 'all 0.2s'
-                    }}
-                  >
-                    {theme === 'vice_city' ? 'VC' : theme === 'san_andreas' ? 'SA' : theme === 'gta4' ? 'IV' : 'V'}
-                  </button>
-                ))}
-              </div>
-            ) : (
-              <button
-                onClick={() => {
-                  if (themeStyle === 'communist') {
-                    setIsCommunistSpedUp(!isCommunistSpedUp);
-                  } else if (themeStyle === 'spiderman') {
-                    setIsMilesMorales(!isMilesMorales);
-                  } else {
-                    setIsDarkMode(!isDarkMode);
-                  }
-                }}
-                style={{
-                  background: 'transparent',
-                  border: 'none',
-                  cursor: 'pointer',
-                  color: 'var(--text-main)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  padding: '4px'
-                }}
-                title={themeStyle === 'communist' ? "Toggle Communist Mode" : "Toggle Theme"}
-              >
-                {themeStyle === 'spiderman' ? (
-                  <span style={{ fontSize: '24px' }}>🕷️</span>
-                ) : themeStyle === 'ghibli' ? (
-                  isDarkMode ? <Brush size={20} /> : <Cat size={20} />
-                ) : (
-                  isDarkMode ? <Sun size={20} /> : <Moon size={20} />
-                )}
-              </button>
-            )}
+            <button
+              onClick={() => setIsDarkMode(!isDarkMode)}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                cursor: 'pointer',
+                color: 'var(--text-main)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: '4px'
+              }}
+              title="Toggle Theme"
+            >
+              {isDarkMode ? <Sun size={16} /> : <Moon size={16} />}
+            </button>
           </div>
-
         </div>
       </div>
 

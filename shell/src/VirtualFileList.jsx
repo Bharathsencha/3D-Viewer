@@ -1,4 +1,3 @@
-import React from 'react';
 import { FixedSizeList as List } from 'react-window';
 
 import AutoSizer from 'react-virtualized-auto-sizer';
@@ -13,7 +12,7 @@ export default function VirtualFileList({ files, selectedNodes, handleNodeClick,
     const isSelected = selectedNodes.includes(file.id);
 
     return (
-      <div style={style}>
+      <div style={{ ...style, paddingLeft: '8px', paddingRight: '8px', paddingTop: '4px', paddingBottom: '4px', boxSizing: 'border-box' }}>
         <div 
           onClick={(e) => {
             if (file.missing) return;
@@ -21,28 +20,44 @@ export default function VirtualFileList({ files, selectedNodes, handleNodeClick,
           }}
           style={{
             display: 'flex', alignItems: 'center', gap: '16px', padding: '12px 16px',
-            borderRadius: '8px', cursor: file.missing ? 'not-allowed' : 'pointer',
-            background: isSelected ? 'var(--accent-color)' : 'var(--surface-color)',
-            color: isSelected ? '#fff' : 'var(--text-main)',
-            border: isSelected ? '2px solid var(--accent-color)' : '2px solid transparent',
+            borderRadius: '12px', cursor: file.missing ? 'not-allowed' : 'pointer',
+            background: isSelected ? 'var(--accent-bg-glow)' : 'var(--surface-color)',
+            color: isSelected ? 'var(--accent-color)' : 'var(--text-main)',
+            border: isSelected ? '1px solid var(--accent-color)' : '1px solid var(--border-color)',
             opacity: file.missing ? 0.6 : 1,
-            height: 'calc(100% - 8px)', // accounts for gap
+            height: '100%',
+            transition: 'all 0.2s ease',
+            boxShadow: isSelected ? 'var(--shadow-sm)' : 'none',
+          }}
+          onMouseEnter={e => {
+            if (!isSelected && !file.missing) {
+              e.currentTarget.style.background = 'var(--hover-color)';
+              e.currentTarget.style.transform = 'translateX(4px)';
+            }
+          }}
+          onMouseLeave={e => {
+            if (!isSelected && !file.missing) {
+              e.currentTarget.style.background = 'var(--surface-color)';
+              e.currentTarget.style.transform = 'none';
+            }
           }}
         >
-          <Icon size={20} color={isSelected ? '#fff' : color} />
-          <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{file.name}</span>
+          <Icon size={20} color={isSelected ? 'var(--accent-color)' : color} />
+          <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: isSelected ? 600 : 500 }}>{file.name}</span>
           <div 
             onClick={(e) => toggleFavorite(e, file.id)}
             style={{ cursor: 'pointer', padding: '4px' }}
           >
-            <Star size={16} fill={file.isFavorite ? 'gold' : 'transparent'} color={file.isFavorite ? 'gold' : (isSelected ? '#fff' : 'var(--text-muted)')} />
+            <Star size={16} fill={file.isFavorite ? 'gold' : 'transparent'} color={file.isFavorite ? 'gold' : (isSelected ? 'var(--accent-color)' : 'var(--text-muted)')} />
           </div>
-          <div style={{ width: '80px', textAlign: 'right', fontSize: '13px', color: isSelected ? 'rgba(255,255,255,0.8)' : 'var(--text-muted)' }}>
+          <div style={{ width: '80px', textAlign: 'right', fontSize: '13px', color: isSelected ? 'var(--accent-color)' : 'var(--text-muted)' }}>
             {file.size ? (file.size / 1024 / 1024).toFixed(2) + ' MB' : 'N/A'}
           </div>
           <div 
             onClick={e => handleDelete(e, file.id)}
-            style={{ cursor: 'pointer', padding: '4px', color: isSelected ? '#fff' : '#EF4444' }}
+            style={{ cursor: 'pointer', padding: '4px', color: '#EF4444', opacity: 0.7, transition: 'opacity 0.2s' }}
+            onMouseEnter={e => e.currentTarget.style.opacity = '1'}
+            onMouseLeave={e => e.currentTarget.style.opacity = '0.7'}
           >
             <Trash2 size={16} />
           </div>
